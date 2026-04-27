@@ -358,43 +358,99 @@ textarea{resize:vertical;min-height:72px}
 
 /* === MOBILE RESPONSIVE === */
 @media (max-width:768px){
-  body{font-size:14px}
-  .app{position:relative}
 
-  /* ── Hamburger: fixed circle button top-left ── */
-  .hamburger{
-    display:flex;position:fixed;top:10px;left:10px;z-index:1001;
-    width:44px;height:44px;border-radius:50%;
-    background:#fff;border:none;
-    box-shadow:0 2px 14px rgba(30,27,75,.22);
-    font-size:22px;color:var(--text);cursor:pointer;
-    align-items:center;justify-content:center;padding:0;
-    font-family:inherit;-webkit-tap-highlight-color:transparent;
+  /* ═══════════════════════════════════════════════════════
+     CORE LAYOUT — the correct full-screen app pattern:
+       html/body → 100% height, overflow hidden
+       .app → flex column, full height
+       .main → flex:1, flex column, overflow hidden
+       .topbar → flex-shrink:0 (fixed height at top)
+       .content → flex:1, min-height:0, overflow-y:auto  ← THE SCROLL CONTAINER
+       .mob-nav → flex-shrink:0 (fixed height at bottom)
+     min-height:0 on flex children is CRITICAL — without it
+     flex items won't shrink below intrinsic height, killing scroll.
+  ═══════════════════════════════════════════════════════ */
+
+  /* Use % height to avoid iOS 100vh-includes-browser-chrome bug */
+  html,body{height:100%;overflow:hidden}
+
+  .app{
+    height:100%;
+    overflow:hidden;
+    /* keep display:flex but sidebar is position:fixed so only .main in flow */
   }
 
-  /* ── Sidebar drawer (opened by hamburger) ── */
-  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:200;transform:translateX(-100%);transition:transform .22s ease;box-shadow:4px 0 24px rgba(30,27,75,.22)}
+  /* Sidebar — off-screen drawer */
+  .sidebar{
+    position:fixed;left:0;top:0;height:100%;width:260px;
+    z-index:200;
+    transform:translateX(-100%);
+    transition:transform .22s ease;
+    box-shadow:4px 0 24px rgba(30,27,75,.22);
+    overflow-y:auto;
+  }
   .sidebar.mob-open{transform:translateX(0)}
-  .sidebar-mob-overlay{display:block;position:fixed;inset:0;background:rgba(30,27,75,.45);z-index:199;opacity:0;pointer-events:none;transition:opacity .22s}
+  .sidebar-mob-overlay{
+    display:block;position:fixed;inset:0;
+    background:rgba(30,27,75,.45);z-index:199;
+    opacity:0;pointer-events:none;transition:opacity .22s;
+  }
   .sidebar-mob-overlay.open{opacity:1;pointer-events:all}
 
-  /* ── Topbar: indent title past the fixed hamburger ── */
-  .topbar{padding:0 10px 0 66px;height:56px;z-index:10;position:relative}
+  /* Main column — fills all remaining space */
+  .main{
+    flex:1;
+    display:flex;flex-direction:column;
+    overflow:hidden;
+    min-height:0;min-width:0;
+  }
+
+  /* Topbar — fixed height, anchored top */
+  .topbar{
+    flex-shrink:0;height:56px;
+    padding:0 10px 0 64px;
+    z-index:10;
+  }
   .tb-sub{display:none}
   .tb-title{font-size:15px}
   .gsearch{display:none}
   .tb-right{gap:6px}
 
-  /* ── Bottom nav bar ── */
+  /* Content — THE scroll container; flex:1 + min-height:0 is the key */
+  .content{
+    flex:1;
+    min-height:0;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-y:contain;
+    padding:12px;
+  }
+
+  /* Bottom nav — flex child, anchored bottom (moved inside .main in HTML) */
   .mob-nav{
-    display:flex;position:fixed;
-    bottom:0;left:0;right:0;z-index:1000;
+    display:flex;
+    flex-shrink:0;
+    height:calc(60px + env(safe-area-inset-bottom));
+    padding-bottom:env(safe-area-inset-bottom);
+    /* override any residual position:fixed */
+    position:static;
     background:#fff;
     border-top:1.5px solid var(--border);
-    height:60px;
-    padding-bottom:env(safe-area-inset-bottom);
     box-shadow:0 -4px 20px rgba(30,27,75,.08);
   }
+
+  /* Hamburger — fixed circle, top-left, above everything */
+  .hamburger{
+    display:flex;position:fixed;top:8px;left:10px;z-index:1001;
+    width:40px;height:40px;border-radius:50%;
+    background:#fff;border:none;
+    box-shadow:0 2px 14px rgba(30,27,75,.22);
+    font-size:21px;color:var(--text);cursor:pointer;
+    align-items:center;justify-content:center;padding:0;
+    font-family:inherit;-webkit-tap-highlight-color:transparent;
+  }
+
+  /* Bottom nav items */
   .mn-item{
     flex:1;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:2px;
@@ -404,66 +460,118 @@ textarea{resize:vertical;min-height:72px}
     -webkit-tap-highlight-color:transparent;
   }
   .mn-item.active{color:var(--bb-pink2)}
-  .mn-item.active .mn-ico{transform:scale(1.18)}
+  .mn-item.active .mn-ico{transform:scale(1.15)}
   .mn-ico{font-size:20px;line-height:1;transition:transform .15s;display:block}
   .mn-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;line-height:1}
 
-  /* ── Scroll fix ──
-     body+.app+.main all have overflow:hidden / height:100vh which traps scroll.
-     On mobile, unlock .main and give .content an explicit bounded height so
-     the browser knows exactly what the scroll container is. ── */
-  body{overflow:hidden}
-  .app{overflow:hidden}
-  .main{overflow:visible}
-  .content{
-    overflow-y:scroll;
-    -webkit-overflow-scrolling:touch;
-    /* fallback for browsers without dvh */
-    height:calc(100vh - 116px);
-    /* dynamic viewport height — handles iOS chrome appearing/disappearing */
-    height:calc(100dvh - 116px);
-    padding:12px 12px 20px;
-  }
+  /* ═══════════════════════════════════════════════════════
+     GRIDS — collapse multi-column layouts to mobile-friendly
+  ═══════════════════════════════════════════════════════ */
 
-  /* ── Stats — 2 columns ── */
-  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  /* Dashboard stats: 5-col → 2-col */
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .sc{padding:11px 12px}
+  .sc-val{font-size:17px}
 
-  /* ── Layout grids ── */
+  /* General 2/3-col grids → single column */
   .g2,.g3{grid-template-columns:1fr}
 
-  /* ── Booking layout — stack ── */
-  .booking-layout{grid-template-columns:1fr;min-height:auto}
+  /* Booking flow: 260px+1fr → single column */
+  .booking-layout{grid-template-columns:1fr;min-height:auto;gap:10px}
 
-  /* ── Products — 2 columns ── */
-  .product-grid{grid-template-columns:repeat(2,1fr)}
+  /* Products: 3-col → 2-col */
+  .product-grid{grid-template-columns:repeat(2,1fr);gap:10px}
 
-  /* ── Timeslots — 2 columns ── */
-  .timeslot-grid{grid-template-columns:repeat(2,1fr)}
+  /* Time slots: 4-col → 2-col */
+  .timeslot-grid{grid-template-columns:repeat(2,1fr);gap:6px}
 
-  /* ── Calendar touch targets ── */
-  .cal-date{min-height:44px;font-size:13px}
+  /* Form rows: 2/3-col → single column */
+  .fr2,.fr3{grid-template-columns:1fr;gap:0}
 
-  /* ── Forms — stack ── */
-  .fr2,.fr3{grid-template-columns:1fr}
-  .li-grid{grid-template-columns:1fr 60px 80px 26px}
+  /* Invoice line items: keep but compress */
+  .li-grid{grid-template-columns:1fr 55px 75px 26px;gap:5px}
+  .li-grid input{font-size:12px;padding:5px 7px}
 
-  /* ── Tables — horizontal scroll ── */
-  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  td,th{white-space:nowrap}
+  /* ═══════════════════════════════════════════════════════
+     TABLES — horizontal scroll on all data tables
+  ═══════════════════════════════════════════════════════ */
+  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+  /* Tables not in .tw get their own scroll container */
+  table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+  th,td{white-space:nowrap}
 
-  /* ── Modals — bottom sheet ── */
+  /* ═══════════════════════════════════════════════════════
+     CALENDAR — larger touch targets
+  ═══════════════════════════════════════════════════════ */
+  .cal-date{min-height:40px;font-size:12px}
+  .cal-grid{padding:8px 10px}
+
+  /* ═══════════════════════════════════════════════════════
+     MODALS — full-width bottom sheet
+  ═══════════════════════════════════════════════════════ */
   .ov{padding:0;align-items:flex-end}
-  .modal,.modal.wide{max-width:100%;width:100%;border-radius:18px 18px 0 0;max-height:90vh;transform:translateY(20px) scale(1)}
+  .modal,.modal.wide{
+    max-width:100%;width:100%;
+    border-radius:16px 16px 0 0;
+    max-height:88vh;
+    transform:translateY(20px);
+  }
   .ov.open .modal{transform:translateY(0)}
+  .mh{padding:14px 16px 12px}
+  .mb{padding:14px 16px}
+  .mf{padding:10px 16px 14px;flex-wrap:wrap;gap:6px}
+  .mf .btn{flex:1 1 auto;justify-content:center;min-width:0}
 
-  /* ── Slide panel — full width ── */
+  /* ═══════════════════════════════════════════════════════
+     SLIDE PANEL — full screen
+  ═══════════════════════════════════════════════════════ */
   .panel{width:100%}
+  .panel-hd{padding:14px 16px}
+  .panel-bd{padding:14px 16px}
+  .dg{grid-template-columns:90px 1fr;gap:6px 10px}
 
-  /* ── Action bars — wrap ── */
-  .fb{flex-wrap:wrap}
+  /* ═══════════════════════════════════════════════════════
+     CARDS & HEADERS
+  ═══════════════════════════════════════════════════════ */
+  .ch{padding:10px 14px;flex-wrap:wrap;gap:6px}
+  .cb{padding:10px 14px}
+  .card{border-radius:10px}
+
+  /* ═══════════════════════════════════════════════════════
+     FLEX BARS & BUTTON GROUPS
+  ═══════════════════════════════════════════════════════ */
+  .fb{flex-wrap:wrap;gap:6px}
   .mf{flex-wrap:wrap;gap:6px}
   .lead-row{flex-wrap:wrap;gap:8px}
-  .conf-banner{flex-wrap:wrap;gap:8px}
+  .conf-banner{flex-wrap:wrap;gap:8px;padding:12px 14px}
+  .ia{flex-wrap:wrap}
+
+  /* Tabs: single horizontal scroll row, no wrapping */
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
+        -ms-overflow-style:none;scrollbar-width:none;max-width:100%}
+  .tabs::-webkit-scrollbar{display:none}
+
+  /* ═══════════════════════════════════════════════════════
+     PIPELINE — narrower cards on mobile
+  ═══════════════════════════════════════════════════════ */
+  .pipe-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:12px}
+  .stage{width:230px}
+
+  /* ═══════════════════════════════════════════════════════
+     MISC
+  ═══════════════════════════════════════════════════════ */
+  .empty{padding:28px 16px}
+  /* Toast — clear bottom nav */
+  .tc{bottom:calc(72px + env(safe-area-inset-bottom));right:12px;left:12px;align-items:stretch}
+  .toast{max-width:100%}
+  /* Settings: override inline max-width */
+  [style*="max-width: 520px"],[style*="max-width:520px"]{max-width:100%!important;width:100%!important}
+  /* Product card image area */
+  .prod-emoji{height:70px;font-size:36px}
+  /* Booking confirmation */
+  .conf-banner .btn{width:100%}
+  /* Font size */
+  body{font-size:14px}
 }
 </style>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -487,25 +595,6 @@ textarea{resize:vertical;min-height:72px}
 </div>
 <div class="app" id="main-app" style="display:none">
 <div class="sidebar-mob-overlay" id="sidebar-mob-overlay" onclick="closeSidebar()"></div>
-
-<!-- ═══ MOBILE BOTTOM NAV ═══ -->
-<nav class="mob-nav" id="mob-nav">
-  <button class="mn-item active" id="mn-dashboard" onclick="gotoPage('dashboard')">
-    <span class="mn-ico">🏠</span><span class="mn-lbl">Home</span>
-  </button>
-  <button class="mn-item" id="mn-new-booking" onclick="gotoPage('new-booking')">
-    <span class="mn-ico">➕</span><span class="mn-lbl">Book</span>
-  </button>
-  <button class="mn-item" id="mn-bookings" onclick="gotoPage('bookings')">
-    <span class="mn-ico">📋</span><span class="mn-lbl">Bookings</span>
-  </button>
-  <button class="mn-item" id="mn-products" onclick="gotoPage('products')">
-    <span class="mn-ico">📦</span><span class="mn-lbl">Products</span>
-  </button>
-  <button class="mn-item" id="mn-settings" onclick="gotoPage('settings')">
-    <span class="mn-ico">⚙️</span><span class="mn-lbl">Settings</span>
-  </button>
-</nav>
 
 <!-- ═══ SIDEBAR ═══ -->
 <aside class="sidebar">
@@ -919,7 +1008,26 @@ textarea{resize:vertical;min-height:72px}
       </div>
     </div>
 
-  </div>
+  </div><!-- end .content -->
+
+  <!-- ═══ MOBILE BOTTOM NAV (flex child of .main — scroll anchor) ═══ -->
+  <nav class="mob-nav" id="mob-nav">
+    <button class="mn-item active" id="mn-dashboard" onclick="gotoPage('dashboard')">
+      <span class="mn-ico">🏠</span><span class="mn-lbl">Home</span>
+    </button>
+    <button class="mn-item" id="mn-new-booking" onclick="gotoPage('new-booking')">
+      <span class="mn-ico">➕</span><span class="mn-lbl">Book</span>
+    </button>
+    <button class="mn-item" id="mn-bookings" onclick="gotoPage('bookings')">
+      <span class="mn-ico">📋</span><span class="mn-lbl">Bookings</span>
+    </button>
+    <button class="mn-item" id="mn-products" onclick="gotoPage('products')">
+      <span class="mn-ico">📦</span><span class="mn-lbl">Products</span>
+    </button>
+    <button class="mn-item" id="mn-settings" onclick="gotoPage('settings')">
+      <span class="mn-ico">⚙️</span><span class="mn-lbl">Settings</span>
+    </button>
+  </nav>
 </main>
 </div>
 
