@@ -349,6 +349,76 @@ textarea{resize:vertical;min-height:72px}
 .prod-detail-emoji{font-size:56px;margin-bottom:10px}
 .prod-detail-name{font-family:'Nunito',sans-serif;font-size:20px;font-weight:900}
 .prod-detail-price{font-family:'Nunito',sans-serif;font-size:24px;font-weight:900;color:var(--bb-pink2);margin-top:4px}
+
+/* hamburger & sidebar overlay — hidden on desktop */
+.hamburger{display:none}
+.sidebar-mob-overlay{display:none}
+
+/* === MOBILE RESPONSIVE === */
+@media (max-width:768px){
+  body{font-size:14px}
+  .app{position:relative}
+
+  /* sidebar drawer */
+  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:200;transform:translateX(-100%);transition:transform .22s ease;box-shadow:4px 0 24px rgba(30,27,75,.22)}
+  .sidebar.mob-open{transform:translateX(0)}
+  .sidebar-mob-overlay{display:block;position:fixed;inset:0;background:rgba(30,27,75,.45);z-index:199;opacity:0;pointer-events:none;transition:opacity .22s}
+  .sidebar-mob-overlay.open{opacity:1;pointer-events:all}
+
+  /* hamburger button */
+  .hamburger{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:var(--surf2);cursor:pointer;flex-shrink:0;color:var(--text2);font-size:20px;line-height:1;padding:0;font-family:inherit;transition:all .13s}
+  .hamburger:hover{background:var(--surf3);border-color:var(--border2)}
+
+  /* topbar */
+  .topbar{padding:0 10px;gap:8px}
+  .tb-sub{display:none}
+  .tb-title{font-size:14px}
+  .gsearch{display:none}
+  .tb-right{gap:6px}
+
+  /* content area */
+  .content{padding:12px}
+
+  /* stats — 2 columns */
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+
+  /* dashboard / layout grids */
+  .g2,.g3{grid-template-columns:1fr}
+
+  /* booking layout — stack vertically */
+  .booking-layout{grid-template-columns:1fr;min-height:auto}
+
+  /* products — 2 columns */
+  .product-grid{grid-template-columns:repeat(2,1fr)}
+
+  /* timeslots — 2 columns */
+  .timeslot-grid{grid-template-columns:repeat(2,1fr)}
+
+  /* calendar — 44px minimum touch targets */
+  .cal-date{min-height:44px;font-size:13px}
+
+  /* forms — stack columns */
+  .fr2,.fr3{grid-template-columns:1fr}
+  .li-grid{grid-template-columns:1fr 60px 80px 26px}
+
+  /* tables — horizontal scroll */
+  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  td,th{white-space:nowrap}
+
+  /* modals — bottom sheet */
+  .ov{padding:0;align-items:flex-end}
+  .modal,.modal.wide{max-width:100%;width:100%;border-radius:18px 18px 0 0;max-height:90vh;transform:translateY(20px) scale(1)}
+  .ov.open .modal{transform:translateY(0)}
+
+  /* slide panel — full width */
+  .panel{width:100%}
+
+  /* action bars */
+  .fb{flex-wrap:wrap}
+  .mf{flex-wrap:wrap;gap:6px}
+  .lead-row{flex-wrap:wrap;gap:8px}
+  .conf-banner{flex-wrap:wrap;gap:8px}
+}
 </style>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
@@ -370,6 +440,7 @@ textarea{resize:vertical;min-height:72px}
   </div>
 </div>
 <div class="app" id="main-app" style="display:none">
+<div class="sidebar-mob-overlay" id="sidebar-mob-overlay" onclick="closeSidebar()"></div>
 
 <!-- ═══ SIDEBAR ═══ -->
 <aside class="sidebar">
@@ -436,6 +507,7 @@ textarea{resize:vertical;min-height:72px}
 <!-- ═══ MAIN ═══ -->
 <main class="main">
   <div class="topbar">
+    <button class="hamburger" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
     <div class="tb-left">
       <div class="tb-title" id="pg-title">Dashboard</div>
       <div class="tb-sub" id="pg-sub">Welcome back 🫧</div>
@@ -1158,7 +1230,18 @@ const PMETA={
   settings:{t:'Settings',s:'Business details and preferences'}
 };
 
+function toggleSidebar(){
+  var sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-mob-overlay');
+  var open=sb.classList.toggle('mob-open');
+  ov.classList.toggle('open',open);
+}
+function closeSidebar(){
+  document.querySelector('.sidebar').classList.remove('mob-open');
+  document.getElementById('sidebar-mob-overlay').classList.remove('open');
+}
+
 function gotoPage(page){
+  closeSidebar();
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   const pg=document.getElementById('page-'+page);if(pg)pg.classList.add('active');
