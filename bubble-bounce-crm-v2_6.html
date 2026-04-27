@@ -353,67 +353,99 @@ textarea{resize:vertical;min-height:72px}
 /* hamburger & sidebar overlay — hidden on desktop */
 .hamburger{display:none}
 .sidebar-mob-overlay{display:none}
+/* bottom nav — hidden on desktop */
+.mob-nav{display:none}
 
 /* === MOBILE RESPONSIVE === */
 @media (max-width:768px){
   body{font-size:14px}
   .app{position:relative}
 
-  /* sidebar drawer */
+  /* ── Hamburger: fixed circle button top-left ── */
+  .hamburger{
+    display:flex;position:fixed;top:10px;left:10px;z-index:1001;
+    width:44px;height:44px;border-radius:50%;
+    background:#fff;border:none;
+    box-shadow:0 2px 14px rgba(30,27,75,.22);
+    font-size:22px;color:var(--text);cursor:pointer;
+    align-items:center;justify-content:center;padding:0;
+    font-family:inherit;-webkit-tap-highlight-color:transparent;
+  }
+
+  /* ── Sidebar drawer (opened by hamburger) ── */
   .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:200;transform:translateX(-100%);transition:transform .22s ease;box-shadow:4px 0 24px rgba(30,27,75,.22)}
   .sidebar.mob-open{transform:translateX(0)}
   .sidebar-mob-overlay{display:block;position:fixed;inset:0;background:rgba(30,27,75,.45);z-index:199;opacity:0;pointer-events:none;transition:opacity .22s}
   .sidebar-mob-overlay.open{opacity:1;pointer-events:all}
 
-  /* hamburger button */
-  .hamburger{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:var(--surf2);cursor:pointer;flex-shrink:0;color:var(--text2);font-size:20px;line-height:1;padding:0;font-family:inherit;transition:all .13s}
-  .hamburger:hover{background:var(--surf3);border-color:var(--border2)}
-
-  /* topbar */
-  .topbar{padding:0 10px;gap:8px}
+  /* ── Topbar: indent title past the fixed hamburger ── */
+  .topbar{padding:0 10px 0 66px;height:56px;z-index:10;position:relative}
   .tb-sub{display:none}
-  .tb-title{font-size:14px}
+  .tb-title{font-size:15px}
   .gsearch{display:none}
   .tb-right{gap:6px}
 
-  /* content area */
-  .content{padding:12px}
+  /* ── Bottom nav bar ── */
+  .mob-nav{
+    display:flex;position:fixed;
+    bottom:0;left:0;right:0;z-index:1000;
+    background:#fff;
+    border-top:1.5px solid var(--border);
+    height:60px;
+    padding-bottom:env(safe-area-inset-bottom);
+    box-shadow:0 -4px 20px rgba(30,27,75,.08);
+  }
+  .mn-item{
+    flex:1;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:2px;
+    background:none;border:none;cursor:pointer;
+    color:var(--text3);font-family:'Nunito Sans',sans-serif;
+    padding:6px 2px;transition:color .15s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .mn-item.active{color:var(--bb-pink2)}
+  .mn-item.active .mn-ico{transform:scale(1.18)}
+  .mn-ico{font-size:20px;line-height:1;transition:transform .15s;display:block}
+  .mn-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;line-height:1}
 
-  /* stats — 2 columns */
+  /* ── Content: clear bottom nav + don't hide under hamburger ── */
+  .content{padding:12px 12px calc(72px + env(safe-area-inset-bottom)) 12px}
+
+  /* ── Stats — 2 columns ── */
   .stats-grid{grid-template-columns:repeat(2,1fr)}
 
-  /* dashboard / layout grids */
+  /* ── Layout grids ── */
   .g2,.g3{grid-template-columns:1fr}
 
-  /* booking layout — stack vertically */
+  /* ── Booking layout — stack ── */
   .booking-layout{grid-template-columns:1fr;min-height:auto}
 
-  /* products — 2 columns */
+  /* ── Products — 2 columns ── */
   .product-grid{grid-template-columns:repeat(2,1fr)}
 
-  /* timeslots — 2 columns */
+  /* ── Timeslots — 2 columns ── */
   .timeslot-grid{grid-template-columns:repeat(2,1fr)}
 
-  /* calendar — 44px minimum touch targets */
+  /* ── Calendar touch targets ── */
   .cal-date{min-height:44px;font-size:13px}
 
-  /* forms — stack columns */
+  /* ── Forms — stack ── */
   .fr2,.fr3{grid-template-columns:1fr}
   .li-grid{grid-template-columns:1fr 60px 80px 26px}
 
-  /* tables — horizontal scroll */
+  /* ── Tables — horizontal scroll ── */
   .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
   td,th{white-space:nowrap}
 
-  /* modals — bottom sheet */
+  /* ── Modals — bottom sheet ── */
   .ov{padding:0;align-items:flex-end}
   .modal,.modal.wide{max-width:100%;width:100%;border-radius:18px 18px 0 0;max-height:90vh;transform:translateY(20px) scale(1)}
   .ov.open .modal{transform:translateY(0)}
 
-  /* slide panel — full width */
+  /* ── Slide panel — full width ── */
   .panel{width:100%}
 
-  /* action bars */
+  /* ── Action bars — wrap ── */
   .fb{flex-wrap:wrap}
   .mf{flex-wrap:wrap;gap:6px}
   .lead-row{flex-wrap:wrap;gap:8px}
@@ -441,6 +473,25 @@ textarea{resize:vertical;min-height:72px}
 </div>
 <div class="app" id="main-app" style="display:none">
 <div class="sidebar-mob-overlay" id="sidebar-mob-overlay" onclick="closeSidebar()"></div>
+
+<!-- ═══ MOBILE BOTTOM NAV ═══ -->
+<nav class="mob-nav" id="mob-nav">
+  <button class="mn-item active" id="mn-dashboard" onclick="gotoPage('dashboard')">
+    <span class="mn-ico">🏠</span><span class="mn-lbl">Home</span>
+  </button>
+  <button class="mn-item" id="mn-new-booking" onclick="gotoPage('new-booking')">
+    <span class="mn-ico">➕</span><span class="mn-lbl">Book</span>
+  </button>
+  <button class="mn-item" id="mn-bookings" onclick="gotoPage('bookings')">
+    <span class="mn-ico">📋</span><span class="mn-lbl">Bookings</span>
+  </button>
+  <button class="mn-item" id="mn-products" onclick="gotoPage('products')">
+    <span class="mn-ico">📦</span><span class="mn-lbl">Products</span>
+  </button>
+  <button class="mn-item" id="mn-settings" onclick="gotoPage('settings')">
+    <span class="mn-ico">⚙️</span><span class="mn-lbl">Settings</span>
+  </button>
+</nav>
 
 <!-- ═══ SIDEBAR ═══ -->
 <aside class="sidebar">
@@ -1239,9 +1290,15 @@ function closeSidebar(){
   document.querySelector('.sidebar').classList.remove('mob-open');
   document.getElementById('sidebar-mob-overlay').classList.remove('open');
 }
+function updateMobNav(page){
+  var map={dashboard:'mn-dashboard','new-booking':'mn-new-booking',bookings:'mn-bookings',products:'mn-products',settings:'mn-settings'};
+  document.querySelectorAll('.mn-item').forEach(function(el){el.classList.remove('active')});
+  if(map[page]){var el=document.getElementById(map[page]);if(el)el.classList.add('active');}
+}
 
 function gotoPage(page){
   closeSidebar();
+  updateMobNav(page);
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   const pg=document.getElementById('page-'+page);if(pg)pg.classList.add('active');
