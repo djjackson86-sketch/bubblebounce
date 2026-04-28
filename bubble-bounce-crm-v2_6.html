@@ -805,7 +805,7 @@ textarea{resize:vertical;min-height:72px}
           <div class="cb">
             <p style="font-size:12.5px;color:var(--text2);margin-bottom:12px">Share live data across all devices using your Turso libSQL database.</p>
             <div class="fr"><label>Database URL</label><input id="turso-url" value="https://bubblebounce-djjackson86-sketch.aws-eu-west-1.turso.io" placeholder="https://...turso.io"></div>
-            <div class="fr"><label>Auth Token</label><input id="turso-token" type="password" value="eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NzczMTQ1ODYsImlkIjoiMDE5ZGQwMzMtYzkwMS03MmVkLWE1NTUtZjYzNGZjNjQwYTcxIiwicmlkIjoiYWUwMWI0ZTYtNDFhMS00NWI1LTk3MjgtMjBkODI2MzU2NDIwIn0.j4g4VFE6ZEVHYyRF27SAQylA6Jjj2A1SG9tdvMsPLPjtx8U66SNJ6Ue2YsIAfTZz073fHZojnkr9oo6VXesqBA" placeholder="eyJ..."></div>
+            <div class="fr"><label>Auth Token</label><input id="turso-token" type="password" value="eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJleHAiOjE4MDg5MzExMTIsImdpZCI6ImZmNzliYWYzLWEwYzYtNDVjYy1iNjdkLTU1MjllNGQ0YTA2YiIsImlhdCI6MTc3NzM5NTExMiwicmlkIjoiYTRlZmFmNTAtYzQ0ZC00YzRjLWI3OTgtMjQ0ZjYyYWI5MmVjIn0.waVq2Pp9F1oBoR1xM0j6DSExClezVMmBZRjQ9PW96tFASRWNgFKpYGUjk7VmhaK-ltPG0XsFTSyX1CRiqmd-Bw" placeholder="eyJ..."></div>
             <div id="turso-status" style="font-size:12.5px;min-height:18px;margin-bottom:8px"></div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               <button class="btn btn-sec btn-sm" onclick="saveTursoSettings()">💾 Save</button>
@@ -1145,7 +1145,7 @@ let DB = {
     phone1:'064 819 3770',phone2:'064 176 7407',addr:'69b Maple Road, Kyalami, Midrand, 1684',
     deposit:50,rotDays:7,prefix:'BB-',vatRate:0,
     tursoUrl:'https://bubblebounce-djjackson86-sketch.aws-eu-west-1.turso.io',
-    tursoToken:'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NzczMTQ1ODYsImlkIjoiMDE5ZGQwMzMtYzkwMS03MmVkLWE1NTUtZjYzNGZjNjQwYTcxIiwicmlkIjoiYWUwMWI0ZTYtNDFhMS00NWI1LTk3MjgtMjBkODI2MzU2NDIwIn0.j4g4VFE6ZEVHYyRF27SAQylA6Jjj2A1SG9tdvMsPLPjtx8U66SNJ6Ue2YsIAfTZz073fHZojnkr9oo6VXesqBA',
+    tursoToken:'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJleHAiOjE4MDg5MzExMTIsImdpZCI6ImZmNzliYWYzLWEwYzYtNDVjYy1iNjdkLTU1MjllNGQ0YTA2YiIsImlhdCI6MTc3NzM5NTExMiwicmlkIjoiYTRlZmFmNTAtYzQ0ZC00YzRjLWI3OTgtMjQ0ZjYyYWI5MmVjIn0.waVq2Pp9F1oBoR1xM0j6DSExClezVMmBZRjQ9PW96tFASRWNgFKpYGUjk7VmhaK-ltPG0XsFTSyX1CRiqmd-Bw',
     waNumber:'27648193770',waNumberTom:'27641767407'}
 };
 
@@ -2543,7 +2543,7 @@ function getWidgetSource() {
     'function chkAvail(pid,date,time){',
     '  fetch("https://bubblebounce-djjackson86-sketch.aws-eu-west-1.turso.io/v2/pipeline",{',
     '    method:"POST",',
-    '    headers:{"Authorization":"Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NzczMTQ1ODYsImlkIjoiMDE5ZGQwMzMtYzkwMS03MmVkLWE1NTUtZjYzNGZjNjQwYTcxIiwicmlkIjoiYWUwMWI0ZTYtNDFhMS00NWI1LTk3MjgtMjBkODI2MzU2NDIwIn0.j4g4VFE6ZEVHYyRF27SAQylA6Jjj2A1SG9tdvMsPLPjtx8U66SNJ6Ue2YsIAfTZz073fHZojnkr9oo6VXesqBA","Content-Type":"application/json"},',
+    '    headers:{"Authorization":"Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJleHAiOjE4MDg5MzExMTIsImdpZCI6ImZmNzliYWYzLWEwYzYtNDVjYy1iNjdkLTU1MjllNGQ0YTA2YiIsImlhdCI6MTc3NzM5NTExMiwicmlkIjoiYTRlZmFmNTAtYzQ0ZC00YzRjLWI3OTgtMjQ0ZjYyYWI5MmVjIn0.waVq2Pp9F1oBoR1xM0j6DSExClezVMmBZRjQ9PW96tFASRWNgFKpYGUjk7VmhaK-ltPG0XsFTSyX1CRiqmd-Bw","Content-Type":"application/json"},',
     '    body:JSON.stringify({requests:[{type:"execute",stmt:{sql:"SELECT id FROM bb_bookings WHERE date=? AND status!=?",args:[{type:"text",value:date},{type:"text",value:"cancelled"}]}},{type:"close"}]})',
     '  })',
     '  .then(function(r){return r.json();})',
@@ -2734,7 +2734,7 @@ window.addEventListener('message', function(e) {
 // TURSO CLOUD SYNC
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 var TURSO_URL = 'https://bubblebounce-djjackson86-sketch.aws-eu-west-1.turso.io';
-var TURSO_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NzczMTQ1ODYsImlkIjoiMDE5ZGQwMzMtYzkwMS03MmVkLWE1NTUtZjYzNGZjNjQwYTcxIiwicmlkIjoiYWUwMWI0ZTYtNDFhMS00NWI1LTk3MjgtMjBkODI2MzU2NDIwIn0.j4g4VFE6ZEVHYyRF27SAQylA6Jjj2A1SG9tdvMsPLPjtx8U66SNJ6Ue2YsIAfTZz073fHZojnkr9oo6VXesqBA';
+var TURSO_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJleHAiOjE4MDg5MzExMTIsImdpZCI6ImZmNzliYWYzLWEwYzYtNDVjYy1iNjdkLTU1MjllNGQ0YTA2YiIsImlhdCI6MTc3NzM5NTExMiwicmlkIjoiYTRlZmFmNTAtYzQ0ZC00YzRjLWI3OTgtMjQ0ZjYyYWI5MmVjIn0.waVq2Pp9F1oBoR1xM0j6DSExClezVMmBZRjQ9PW96tFASRWNgFKpYGUjk7VmhaK-ltPG0XsFTSyX1CRiqmd-Bw';
 
 async function tursoQuery(sql, args) {
   var url = (DB.cfg.tursoUrl) || TURSO_URL;
@@ -2916,7 +2916,7 @@ var STOCKTAKE_ACCESSORIES = {
 
 // Turso HTTP API for stocktake sync (bb_bookings table)
 var TURSO_URL = 'https://bubblebounce-djjackson86-sketch.aws-eu-west-1.turso.io';
-var TURSO_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NzczMTQ1ODYsImlkIjoiMDE5ZGQwMzMtYzkwMS03MmVkLWE1NTUtZjYzNGZjNjQwYTcxIiwicmlkIjoiYWUwMWI0ZTYtNDFhMS00NWI1LTk3MjgtMjBkODI2MzU2NDIwIn0.j4g4VFE6ZEVHYyRF27SAQylA6Jjj2A1SG9tdvMsPLPjtx8U66SNJ6Ue2YsIAfTZz073fHZojnkr9oo6VXesqBA';
+var TURSO_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJleHAiOjE4MDg5MzExMTIsImdpZCI6ImZmNzliYWYzLWEwYzYtNDVjYy1iNjdkLTU1MjllNGQ0YTA2YiIsImlhdCI6MTc3NzM5NTExMiwicmlkIjoiYTRlZmFmNTAtYzQ0ZC00YzRjLWI3OTgtMjQ0ZjYyYWI5MmVjIn0.waVq2Pp9F1oBoR1xM0j6DSExClezVMmBZRjQ9PW96tFASRWNgFKpYGUjk7VmhaK-ltPG0XsFTSyX1CRiqmd-Bw';
 
 async function tursoQuery(sql, args) {
   var res = await fetch(TURSO_URL + '/v2/pipeline', {

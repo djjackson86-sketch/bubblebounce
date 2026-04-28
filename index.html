@@ -251,7 +251,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--bl);}
 
 <script>
 const TURSO_URL="https://bubblebounce-djjackson86-sketch.aws-eu-west-1.turso.io";
-const TURSO_TOKEN="eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NzczMTQ1ODYsImlkIjoiMDE5ZGQwMzMtYzkwMS03MmVkLWE1NTUtZjYzNGZjNjQwYTcxIiwicmlkIjoiYWUwMWI0ZTYtNDFhMS00NWI1LTk3MjgtMjBkODI2MzU2NDIwIn0.j4g4VFE6ZEVHYyRF27SAQylA6Jjj2A1SG9tdvMsPLPjtx8U66SNJ6Ue2YsIAfTZz073fHZojnkr9oo6VXesqBA";
+const TURSO_TOKEN="eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJleHAiOjE4MDg5MzExMTIsImdpZCI6ImZmNzliYWYzLWEwYzYtNDVjYy1iNjdkLTU1MjllNGQ0YTA2YiIsImlhdCI6MTc3NzM5NTExMiwicmlkIjoiYTRlZmFmNTAtYzQ0ZC00YzRjLWI3OTgtMjQ0ZjYyYWI5MmVjIn0.waVq2Pp9F1oBoR1xM0j6DSExClezVMmBZRjQ9PW96tFASRWNgFKpYGUjk7VmhaK-ltPG0XsFTSyX1CRiqmd-Bw";
 
 async function tursoQuery(sql,args=[]){
   const typedArgs=args.map(v=>{
