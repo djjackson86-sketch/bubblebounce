@@ -358,7 +358,6 @@ textarea{resize:vertical;min-height:72px}
 
 /* === MOBILE RESPONSIVE === */
 @media (max-width: 768px) {
-  body { background-color: #ff0000 !important; }
   html { height: 100%; }
   body { height: 100%; overflow: hidden !important; margin: 0; }
   .app { display: flex !important; flex-direction: column !important; height: 100% !important; overflow: hidden !important; }
@@ -1261,6 +1260,7 @@ function gotoPage(page){
   document.getElementById('pg-title').textContent=m.t;
   document.getElementById('pg-sub').textContent=m.s;
   renderPage(page);updateBadges();
+  if(window.innerWidth<=900)applyMobileLayout();
 }
 
 function renderPage(p){
@@ -3219,5 +3219,72 @@ function copyFolderEmails(emailStr){
     <div class="mf"><button class="btn btn-ghost" onclick="closeModal('m-widget')">Close</button></div>
   </div>
 </div>
+
+<script>
+function applyMobileLayout() {
+  if (window.innerWidth > 900) return;
+  var vh = window.innerHeight;
+  var topbarH = 56;
+  var navH = 60;
+  var contentH = vh - topbarH - navH;
+
+  var content = document.querySelector('.content');
+  if (content) {
+    content.style.height = contentH + 'px';
+    content.style.maxHeight = contentH + 'px';
+    content.style.overflowY = 'auto';
+    content.style.webkitOverflowScrolling = 'touch';
+    content.style.overscrollBehaviorY = 'contain';
+    content.style.flex = 'none';
+    content.style.paddingBottom = '20px';
+    content.style.boxSizing = 'border-box';
+  }
+
+  var app = document.querySelector('.app');
+  if (app) {
+    app.style.overflow = 'hidden';
+    app.style.height = vh + 'px';
+    app.style.display = 'flex';
+    app.style.flexDirection = 'column';
+  }
+  var main = document.querySelector('.main');
+  if (main) {
+    main.style.overflow = 'hidden';
+    main.style.flex = '1';
+    main.style.display = 'flex';
+    main.style.flexDirection = 'column';
+    main.style.minHeight = '0';
+  }
+  document.body.style.overflow = 'hidden';
+  document.body.style.height = vh + 'px';
+
+  // Make all tables horizontally scrollable
+  document.querySelectorAll('table').forEach(function(t) {
+    if (!t.parentElement.classList.contains('mob-table-wrap')) {
+      var wrap = document.createElement('div');
+      wrap.className = 'mob-table-wrap';
+      wrap.style.cssText = 'overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;';
+      t.parentNode.insertBefore(wrap, t);
+      wrap.appendChild(t);
+    }
+    t.style.cssText = 'width:max-content;min-width:100%;';
+  });
+
+  // Pipeline
+  var pipeWrap = document.querySelector('.pipe-wrap');
+  if (pipeWrap) {
+    pipeWrap.style.overflowX = 'auto';
+    pipeWrap.style.webkitOverflowScrolling = 'touch';
+    document.querySelectorAll('.stage').forEach(function(s) {
+      s.style.minWidth = '200px';
+      s.style.flexShrink = '0';
+    });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() { applyMobileLayout(); });
+window.addEventListener('resize', applyMobileLayout);
+setTimeout(applyMobileLayout, 300);
+</script>
 </body>
 </html>
