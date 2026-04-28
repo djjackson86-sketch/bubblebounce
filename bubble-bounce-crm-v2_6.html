@@ -365,7 +365,7 @@ textarea{resize:vertical;min-height:72px}
   .sidebar.mob-open { transform: translateX(0) !important; }
   .topbar { flex-shrink: 0 !important; height: 56px !important; padding: 0 8px 0 60px !important; overflow: hidden !important; }
   .main { flex: 1 !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; min-height: 0 !important; min-width: 0 !important; }
-  .content { flex: 1 !important; min-height: 0 !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; overscroll-behavior-y: contain !important; padding: 12px 12px 80px 12px !important; box-sizing: border-box !important; }
+  .content { flex: 1 !important; min-height: 0 !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; overscroll-behavior-y: contain !important; padding: 12px 12px 120px 12px !important; box-sizing: border-box !important; }
   .mob-nav { flex-shrink: 0 !important; height: calc(60px + env(safe-area-inset-bottom)) !important; display: flex !important; position: static !important; width: 100% !important; overflow: hidden !important; }
   .hamburger { display: flex !important; position: fixed !important; top: 8px !important; left: 8px !important; z-index: 300 !important; width: 40px !important; height: 40px !important; background: #fff !important; border-radius: 50% !important; box-shadow: 0 2px 8px rgba(0,0,0,0.25) !important; align-items: center !important; justify-content: center !important; border: none !important; font-size: 18px !important; cursor: pointer !important; }
   .sidebar-mob-overlay { position: fixed !important; inset: 0 !important; background: rgba(0,0,0,0.5) !important; z-index: 199 !important; display: none !important; }
@@ -379,7 +379,9 @@ textarea{resize:vertical;min-height:72px}
   .product-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
   .timeslot-grid { grid-template-columns: 1fr 1fr !important; }
   .cal-date { min-height: 44px !important; font-size: 12px !important; }
-  .pipe-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
+  .pipe-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; max-width: 100% !important; }
+  .pipe-wrap .pipeline { max-width: none !important; }
+  .stage { max-width: none !important; min-width: 200px !important; flex-shrink: 0 !important; }
   .tabs, .tab-bar { overflow-x: auto !important; flex-wrap: nowrap !important; -webkit-overflow-scrolling: touch !important; }
   table { display: block !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; max-width: 100% !important; }
   td, th { white-space: nowrap !important; }
@@ -393,6 +395,11 @@ textarea{resize:vertical;min-height:72px}
   .toast { bottom: 72px !important; left: 12px !important; right: 12px !important; }
   .mn-item span { font-size: 10px !important; }
   .content * { max-width: 100% !important; }
+  .content table { max-width: none !important; width: max-content !important; display: block !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
+  .content table thead, .content table tbody, .content table tr { width: auto !important; max-width: none !important; display: table-row-group !important; }
+  .content table thead { display: table-header-group !important; }
+  .content table tr { display: table-row !important; }
+  .content table td, .content table th { display: table-cell !important; white-space: nowrap !important; max-width: none !important; }
   .mob-nav { max-width: 100vw !important; }
   .mn-item { max-width: none !important; flex: 1 !important; width: auto !important; min-width: 0 !important; }
   *:not(.sidebar):not(.hamburger):not(.mob-nav):not(.mn-item):not(.overlay):not(.modal):not(.sidebar-mob-overlay) { min-width: 0 !important; }
@@ -508,7 +515,7 @@ textarea{resize:vertical;min-height:72px}
       <div class="g2" style="margin-bottom:16px">
         <div class="card">
           <div class="ch"><div class="ch-title">🎪 Upcoming Bookings</div><button class="btn btn-sec btn-sm" onclick="gotoPage('bookings')">View All</button></div>
-          <div style="padding:0"><table><thead><tr><th>Client</th><th>Service</th><th>Date</th><th>Value</th><th>Status</th></tr></thead><tbody id="dash-bookings"></tbody></table></div>
+          <div style="padding:0"><div style="overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%"><table><thead><tr><th>Client</th><th>Service</th><th>Date</th><th>Value</th><th>Status</th></tr></thead><tbody id="dash-bookings"></tbody></table></div></div>
         </div>
         <div class="card">
           <div class="ch"><div class="ch-title">📋 Activities Due</div><button class="btn btn-sec btn-sm" onclick="gotoPage('activities')">View All</button></div>
@@ -1257,7 +1264,7 @@ function gotoPage(page){
 
 function renderPage(p){
   if(p==='dashboard')renderDash();
-  if(p==='new-booking')initBookingPage();
+  if(p==='new-booking'){initBookingPage();setTimeout(function(){renderCalendar();},50);}
   if(p==='bookings')renderBookings();
   if(p==='products')renderProducts();
   if(p==='leads')renderLeads();
