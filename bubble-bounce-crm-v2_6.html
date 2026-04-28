@@ -3340,4 +3340,67 @@ function applyMobileLayout() {
   var navH = mobNavEl ? Math.round(mobNavEl.getBoundingClientRect().height) || 60 : 60;
   var contentH = vh - topbarH - navH;
 
-  console.log('[MobileLayout] innerHeight:', vh, '| topbarH:', topbarH, '| navH:', navH, '| contentH
+  console.log('[MobileLayout] innerHeight:', vh, '| topbarH:', topbarH, '| navH:', navH, '| contentH:', contentH);
+
+  var content = document.querySelector('.content');
+  if (content) {
+    content.style.height = contentH + 'px';
+    content.style.maxHeight = contentH + 'px';
+    content.style.overflowY = 'auto';
+    content.style.webkitOverflowScrolling = 'touch';
+    content.style.overscrollBehavior = 'contain';
+    content.style.touchAction = 'pan-y';
+    content.style.flex = 'none';
+    // Bottom padding must exceed nav height so last items aren't hidden beneath it
+    content.style.paddingBottom = (navH + 24) + 'px';
+    content.style.boxSizing = 'border-box';
+  }
+
+  var app = document.querySelector('.app');
+  if (app) {
+    app.style.overflow = 'hidden';
+    app.style.height = vh + 'px';
+    app.style.display = 'flex';
+    app.style.flexDirection = 'column';
+  }
+  var main = document.querySelector('.main');
+  if (main) {
+    main.style.overflow = 'hidden';
+    main.style.flex = '1';
+    main.style.display = 'flex';
+    main.style.flexDirection = 'column';
+    main.style.minHeight = '0';
+  }
+  document.body.style.overflow = 'hidden';
+  document.body.style.height = vh + 'px';
+
+  // Make all tables horizontally scrollable
+  document.querySelectorAll('table').forEach(function(t) {
+    if (!t.parentElement.classList.contains('mob-table-wrap')) {
+      var wrap = document.createElement('div');
+      wrap.className = 'mob-table-wrap';
+      wrap.style.cssText = 'overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;';
+      t.parentNode.insertBefore(wrap, t);
+      wrap.appendChild(t);
+    }
+    t.style.cssText = 'width:max-content;min-width:100%;';
+  });
+
+  // Pipeline
+  var pipeWrap = document.querySelector('.pipe-wrap');
+  if (pipeWrap) {
+    pipeWrap.style.overflowX = 'auto';
+    pipeWrap.style.webkitOverflowScrolling = 'touch';
+    document.querySelectorAll('.stage').forEach(function(s) {
+      s.style.minWidth = '200px';
+      s.style.flexShrink = '0';
+    });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() { applyMobileLayout(); });
+window.addEventListener('resize', applyMobileLayout);
+setTimeout(applyMobileLayout, 300);
+</script>
+</body>
+</html>
