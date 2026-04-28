@@ -203,27 +203,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--bl);}
       <label>Item</label>
       <select id="f-item" onchange="onItemChange()">
         <option value="">Select item...</option>
-        <optgroup label="🫧 Bubbles">
-          <option value="Small Bubble Tent">Small Bubble Tent (2.5m x 3.7m)</option>
-          <option value="Large Bubble Tent">Large Bubble Tent (3m x 5m)</option>
-          <option value="Small Bubble Bouncy House">Small Bubble Bouncy House (3m x 5m)</option>
-          <option value="Large Bubble Bouncy House">Large Bubble Bouncy House (3.5m x 6m)</option>
-        </optgroup>
-        <optgroup label="🏰 Castles">
-          <option value="White Jumping Castle">White Jumping Castle (3m x 3m)</option>
-          <option value="White Castle with Obstacle">White Castle with Obstacle (4m x 4m)</option>
-          <option value="Cool Kids 4-in-1">Cool Kids 4-in-1 (4m x 6.5m)</option>
-        </optgroup>
-        <optgroup label="💧 Water Slides">
-          <option value="Small Water Slide">Small Water Slide (3m x 5m)</option>
-          <option value="Wave Slide">Wave Slide</option>
-        </optgroup>
-        <optgroup label="🎪 Inflatables">
-          <option value="Adventure Island">Adventure Island (8m x 6.5m)</option>
-        </optgroup>
-        <optgroup label="🧸 Soft Play">
-          <option value="White Soft Play Set">White Soft Play Set</option>
-        </optgroup>
       </select>
     </div>
 
@@ -307,20 +286,8 @@ async function tursoQuery(sql,args=[]){
 // ── PINS ──────────────────────────────────────────────────────────────────────
 const PINS = { Carmen:"1234", Thomas:"1234", Sidney:"1234" };
 
-// ── ACCESSORIES AUTO-FILL PER ITEM ────────────────────────────────────────────
-const ITEM_ACCESSORIES = {
-  "Small Bubble Tent":        ["1x Motor","1x Extension Cord","1x Lay Down Sheet"],
-  "Large Bubble Tent":        ["1x Motor","1x Extension Cord","1x Lay Down Sheet"],
-  "Small Bubble Bouncy House":["2x Motor","1x Pump","1x Extension Cord","1x Lay Down Sheet","Towels in Bag"],
-  "Large Bubble Bouncy House":["2x Motor","1x Pump","1x Extension Cord","1x Lay Down Sheet","Towels in Bag"],
-  "White Jumping Castle":     ["1x Motor","1x Extension Cord"],
-  "White Castle with Obstacle":["1x Motor","1x Extension Cord"],
-  "Cool Kids 4-in-1":         ["1x Motor","1x Extension Cord"],
-  "Small Water Slide":        ["1x Motor","1x Extension Cord"],
-  "Wave Slide":               ["1x Motor","1x Extension Cord"],
-  "Adventure Island":         ["1x Motor","1x Extension Cord"],
-  "White Soft Play Set":      ["1x Lay Down Sheet"],
-};
+// products loaded from Turso bb_products table
+let products = [];
 
 let currentUser = null;
 let bookings = [];
@@ -344,6 +311,7 @@ function doLogin(){
   document.getElementById("main-app").style.display="block";
   document.getElementById("logged-in-as").textContent = user;
   document.getElementById("f-bookedby").value = user;
+  loadProducts();
   loadBookings();
 }
 function doLogout(){
@@ -359,6 +327,42 @@ document.getElementById("login-pin").addEventListener("keydown",e=>{if(e.key==="
 function setSyncing(on){
   const dot=document.getElementById("sync-dot");
   if(on) dot.classList.add("syncing"); else dot.classList.remove("syncing");
+}
+
+async function loadProducts(){
+  try{
+    const{rows}=await tursoQuery("SELECT * FROM bb_products WHERE status='active' ORDER BY category,name ASC");
+    products=rows;
+    populateItemSelect();
+    renderStock();
+    renderDashboard();
+  }catch(e){console.error("loadProducts:",e);}
+}
+
+function populateItemSelect(){
+  const sel=document.getElementById("f-item");
+  if(!sel) return;
+  const current=sel.value;
+  const catGroups={
+    "Bubble House":{emoji:"🫧",label:"Bubbles",items:[]},
+    "Jumping Castle":{emoji:"🏰",label:"Castles",items:[]},
+    "Water Slide":{emoji:"💧",label:"Water Slides",items:[]},
+    "Combo":{emoji:"🎪",label:"Combos",items:[]},
+    "Other":{emoji:"🧸",label:"Other",items:[]},
+  };
+  products.forEach(p=>{
+    const grp=catGroups[p.category]||catGroups["Other"];
+    grp.items.push(p);
+  });
+  let html='<option value="">Select item...</option>';
+  Object.values(catGroups).forEach(grp=>{
+    if(!grp.items.length) return;
+    html+=`<optgroup label="${grp.emoji} ${grp.label}">`;
+    grp.items.forEach(p=>{html+=`<option value="${p.name}">${p.name}</option>`;});
+    html+='</optgroup>';
+  });
+  sel.innerHTML=html;
+  if(current) sel.value=current;
 }
 
 async function loadBookings(){
@@ -430,9 +434,7 @@ function renderDashboard(){
 
   // Items booked today
   const bookedToday=new Set(bookings.filter(b=>b.status!=="cancelled"&&b.date&&b.date<=td&&(b.edate||b.date)>=td).map(b=>b.item));
-  const allItems=["Small Bubble Tent","Large Bubble Tent","Small Bubble Bouncy House","Large Bubble Bouncy House",
-    "White Jumping Castle","White Castle with Obstacle","Cool Kids 4-in-1","Small Water Slide","Wave Slide","Adventure Island","White Soft Play Set"];
-  document.getElementById("s-avail").textContent=allItems.length-bookedToday.size;
+  document.getElementById("s-avail").textContent=products.length-bookedToday.size;
   document.getElementById("s-out").textContent=bookings.filter(b=>b.status==="out").length;
 
   const upcoming=bookings.filter(b=>b.date&&b.date>=td&&b.status!=="cancelled")
@@ -543,39 +545,32 @@ async function delBook(id){
 // ── STOCK OVERVIEW ────────────────────────────────────────────────────────────
 function renderStock(){
   const td=today();
-  const ALL_ITEMS=[
-    {name:"Small Bubble Tent",cat:"🫧 Bubbles"},
-    {name:"Large Bubble Tent",cat:"🫧 Bubbles"},
-    {name:"Small Bubble Bouncy House",cat:"🫧 Bubbles"},
-    {name:"Large Bubble Bouncy House",cat:"🫧 Bubbles"},
-    {name:"White Jumping Castle",cat:"🏰 Castles"},
-    {name:"White Castle with Obstacle",cat:"🏰 Castles"},
-    {name:"Cool Kids 4-in-1",cat:"🏰 Castles"},
-    {name:"Small Water Slide",cat:"💧 Water Slides"},
-    {name:"Wave Slide",cat:"💧 Water Slides"},
-    {name:"Adventure Island",cat:"🎪 Inflatables"},
-    {name:"White Soft Play Set",cat:"🧸 Soft Play"},
-  ];
-
-  // Group by category
+  if(!products.length){
+    document.getElementById("stock-list").innerHTML='<div class="card" style="color:var(--gray);text-align:center;padding:24px;">Loading stock…</div>';
+    return;
+  }
+  const catOrder=["Bubble House","Jumping Castle","Water Slide","Combo","Other"];
+  const catLabel={"Bubble House":"🫧 Bubbles","Jumping Castle":"🏰 Castles","Water Slide":"💧 Water Slides","Combo":"🎪 Combos","Other":"🧸 Other"};
   const cats={};
-  ALL_ITEMS.forEach(i=>{
-    if(!cats[i.cat]) cats[i.cat]=[];
-    const activeBooking=bookings.find(b=>b.item===i.name&&b.status!=="cancelled"&&b.date&&b.date<=td&&(b.edate||b.date)>=td);
-    const upcomingBooking=bookings.find(b=>b.item===i.name&&b.status!=="cancelled"&&b.date&&b.date>td);
-    cats[i.cat].push({...i, activeBooking, upcomingBooking});
+  products.forEach(p=>{
+    const cat=p.category||"Other";
+    if(!cats[cat]) cats[cat]=[];
+    const activeBooking=bookings.find(b=>b.item===p.name&&b.status!=="cancelled"&&b.date&&b.date<=td&&(b.edate||b.date)>=td);
+    const upcomingBooking=bookings.find(b=>b.item===p.name&&b.status!=="cancelled"&&b.date&&b.date>td);
+    cats[cat].push({...p, activeBooking, upcomingBooking});
   });
-
   let html="";
-  Object.keys(cats).forEach(cat=>{
+  catOrder.forEach(cat=>{
+    if(!cats[cat]||!cats[cat].length) return;
     html+=`<div class="card">
-      <div style="font-weight:800;font-size:14px;margin-bottom:10px;color:var(--bl);">${cat}</div>`;
+      <div style="font-weight:800;font-size:14px;margin-bottom:10px;color:var(--bl);">${catLabel[cat]||cat}</div>`;
     cats[cat].forEach(i=>{
       const booked=!!i.activeBooking;
       const upcoming=!!i.upcomingBooking;
       html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--gray-mid);">
         <div>
           <div style="font-weight:600;font-size:13px;">${i.name}</div>
+          ${i.price_full_day?`<div style="font-size:11px;color:var(--gray);">R${i.price_full_day.toLocaleString("en-ZA")} / day</div>`:""}
           ${booked?`<div style="font-size:11px;color:#7c3aed;">🚚 Out — ${i.activeBooking.booked_by} · ${formatDate(i.activeBooking.date)}</div>`:""}
           ${!booked&&upcoming?`<div style="font-size:11px;color:var(--yellow);">⏳ Booked — ${i.upcomingBooking.booked_by} · ${formatDate(i.upcomingBooking.date)}</div>`:""}
         </div>
@@ -590,7 +585,9 @@ function renderStock(){
 // ── BOOKING MODAL ─────────────────────────────────────────────────────────────
 function onItemChange(){
   const item=document.getElementById("f-item").value;
-  const accs=ITEM_ACCESSORIES[item]||[];
+  const prod=products.find(p=>p.name===item);
+  let accs=prod&&prod.accessories?prod.accessories:[];
+  if(typeof accs==="string"){try{accs=JSON.parse(accs);}catch(e){accs=accs.split(",").map(s=>s.trim()).filter(Boolean);}}
   const section=document.getElementById("acc-section");
   const list=document.getElementById("acc-list");
   if(!accs.length){section.style.display="none";return;}

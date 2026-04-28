@@ -634,13 +634,13 @@ textarea{resize:vertical;min-height:72px}
       <div class="fb">
         <div class="tabs">
           <div class="tab active" onclick="filterProds('all',this)">All</div>
-          <div class="tab" onclick="filterProds('bubble',this)">Bubble</div>
-          <div class="tab" onclick="filterProds('castle',this)">Castles</div>
-          <div class="tab" onclick="filterProds('slide',this)">Slides</div>
-          <div class="tab" onclick="filterProds('softplay',this)">Soft Play</div>
-          <div class="tab" onclick="filterProds('combo',this)">Combo</div>
+          <div class="tab" onclick="filterProds('Bubble House',this)">🫧 Bubbles</div>
+          <div class="tab" onclick="filterProds('Jumping Castle',this)">🏰 Castles</div>
+          <div class="tab" onclick="filterProds('Water Slide',this)">💧 Slides</div>
+          <div class="tab" onclick="filterProds('Combo',this)">🎪 Combo</div>
+          <div class="tab" onclick="filterProds('Other',this)">🧸 Other</div>
         </div>
-        <button class="btn btn-pri" onclick="openModal('m-product')">+ Add Product</button>
+        <button class="btn btn-pri" onclick="openAddProduct()">+ Add Product</button>
       </div>
       <div class="product-grid" id="product-grid"></div>
     </div>
@@ -1014,23 +1014,25 @@ textarea{resize:vertical;min-height:72px}
       <div class="fr"><label>Product Name *</label><input id="p-name" placeholder="e.g. Large Bubble Bouncy House"></div>
       <div class="fr2">
         <div><label>Category</label><select id="p-cat">
-          <option value="bubble">🫧 Bubble (Tent/Bouncy House)</option>
-          <option value="castle">🏰 White Jumping Castle</option>
-          <option value="slide">💦 Water Slide</option>
-          <option value="softplay">🧸 Soft Play</option>
-          <option value="combo">🎪 Combo / Other</option>
+          <option value="Jumping Castle">🏰 Jumping Castle</option>
+          <option value="Bubble House">🫧 Bubble House</option>
+          <option value="Water Slide">💧 Water Slide</option>
+          <option value="Combo">🎪 Combo</option>
+          <option value="Accessory">🎀 Accessory</option>
+          <option value="Other">🧸 Other</option>
         </select></div>
-        <div><label>Emoji Icon</label><input id="p-emoji" placeholder="🫧" maxlength="2"></div>
-      </div>
-      <div class="fr2">
-        <div><label>Price (ZAR, 4hrs) *</label><input id="p-price" type="number" placeholder="1800"></div>
-        <div><label>Dimensions</label><input id="p-dims" placeholder="e.g. 3m wide x 5m long"></div>
+        <div><label>Status</label><select id="p-status">
+          <option value="active">✅ Active</option>
+          <option value="inactive">🚫 Inactive</option>
+        </select></div>
       </div>
       <div class="fr"><label>Description</label><textarea id="p-desc" placeholder="Brief description of this product…" style="min-height:56px"></textarea></div>
       <div class="fr2">
-        <div><label>Duration (hours)</label><input id="p-duration" type="number" value="4" min="1"></div>
-        <div><label>Max Children</label><input id="p-maxkids" type="number" placeholder="15" min="1"></div>
+        <div><label>Half-day price (R)</label><input id="p-halfday" type="number" placeholder="0" min="0"></div>
+        <div><label>Full-day price (R)</label><input id="p-fullday" type="number" placeholder="1800" min="0"></div>
       </div>
+      <div class="fr"><label>Accessories (comma-separated)</label><input id="p-accs" placeholder="e.g. 1x Motor, 1x Extension Cord, 1x Lay Down Sheet"></div>
+      <div class="fr"><label>Notes</label><textarea id="p-notes" placeholder="Any extra info for staff…" style="min-height:44px"></textarea></div>
     </div>
     <div class="mf">
       <button class="btn btn-ghost" onclick="closeModal('m-product')">Cancel</button>
@@ -1129,16 +1131,16 @@ const DEFAULT_PRODUCTS = [
   {id:'p13',name:'Bubble Tent – Gender Reveal',cat:'bubble',emoji:'🎀',price:1895,dims:'3m wide × 5m long',desc:'Magical bubble tent with gender reveal balloons inside. Pink or blue kept secret until the big moment!',duration:4,maxKids:15,img:''},
   {id:'p14',name:'Bubble Tent 2.5m',cat:'bubble',emoji:'🫧',price:1595,dims:'2.5m wide',desc:'Compact transparent bubble tent with balloons. Perfect for smaller spaces.',duration:4,maxKids:8,img:''}];
 
-const CAT_COLORS = {bubble:'pb-bubble',castle:'pb-castle',slide:'pb-slide',softplay:'pb-softplay',combo:'pb-combo'};
-const CAT_LABELS = {bubble:'Bubble',castle:'Castle',slide:'Slide',softplay:'Soft Play',combo:'Combo'};
-const CAT_BG = {bubble:'#FDF2F8',castle:'#F5F3FF',slide:'#EFF6FF',softplay:'#ECFDF5',combo:'#FFFBEB'};
+const CAT_COLORS = {'Bubble House':'pb-bubble','Jumping Castle':'pb-castle','Water Slide':'pb-slide','Soft Play':'pb-softplay','Combo':'pb-combo','Accessory':'pb-combo','Other':'pb-softplay'};
+const CAT_LABELS = {'Bubble House':'Bubble House','Jumping Castle':'Castle','Water Slide':'Water Slide','Soft Play':'Soft Play','Combo':'Combo','Accessory':'Accessory','Other':'Other'};
+const CAT_BG = {'Bubble House':'#FDF2F8','Jumping Castle':'#F5F3FF','Water Slide':'#EFF6FF','Soft Play':'#ECFDF5','Combo':'#FFFBEB','Accessory':'#FFFBEB','Other':'#ECFDF5'};
 
 // ══════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════
 let DB = {
   contacts:[], deals:[], leads:[], activities:[], invoices:[], notes:[],
-  bookings:[], products:[...DEFAULT_PRODUCTS],
+  bookings:[], products:[],
   cfg:{bizName:'Bubble & Bounce Inflatables',email:'bookatbubbles@gmail.com',
     phone1:'064 819 3770',phone2:'064 176 7407',addr:'69b Maple Road, Kyalami, Midrand, 1684',
     deposit:50,rotDays:7,prefix:'BB-',vatRate:0,
@@ -1171,10 +1173,9 @@ function load(){
     if(saved){
       const p=JSON.parse(saved);
       DB={...DB,...p};
-      // Always sync products from DEFAULT_PRODUCTS (keeps prices/images current, keeps bookings/contacts)
-      DB.products=DEFAULT_PRODUCTS.slice();
+      DB.products=[];  // products now come from Turso bb_products, not localStorage
     }
-  }catch(e){DB.products=DEFAULT_PRODUCTS.slice();}
+  }catch(e){DB.products=[];}
 }
 
 // ══════════════════════════════════════════
@@ -1267,7 +1268,7 @@ function renderPage(p){
   if(p==='dashboard')renderDash();
   if(p==='new-booking'){initBookingPage();setTimeout(function(){renderCalendar();},50);}
   if(p==='bookings')renderBookings();
-  if(p==='products')renderProducts();
+  if(p==='products'){loadProducts();}
   if(p==='leads')renderLeads();
   if(p==='pipeline')renderPipeline();
   if(p==='contacts')renderContacts();
@@ -1674,54 +1675,77 @@ function deleteBooking(id){if(!confirm('Delete this booking?'))return;DB.booking
 function filterProds(f,el){prodF=f;document.querySelectorAll('#page-products .tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderProducts()}
 
 function renderProducts(){
-  let list=prodF==='all'?DB.products:DB.products.filter(p=>p.cat===prodF);
+  let list=prodF==='all'?DB.products:DB.products.filter(p=>p.category===prodF);
   const el=document.getElementById('product-grid');
+  if(!DB.products.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-ico">🫧</div><div class="empty-ttl">Loading catalogue…</div></div>`;return}
   if(!list.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-ico">🫧</div><div class="empty-ttl">No products in this category</div></div>`;return}
-  el.innerHTML=list.map(p=>`
-    <div class="prod-card" onclick="openProductPanel('${p.id}')">
-      <div style="height:140px;overflow:hidden;background:${CAT_BG[p.cat]||'var(--surf2)'};">
-        ${p.img?`<img src="${p.img}" style="width:100%;height:140px;object-fit:cover;display:block;" loading="lazy">`:`<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:44px">${p.emoji}</div>`}
+  el.innerHTML=list.map(p=>{
+    const accs=Array.isArray(p.accessories)?p.accessories:[];
+    const priceStr=p.price_full_day?fmt(p.price_full_day)+(p.price_half_day?' · ½day '+fmt(p.price_half_day):''):p.price_half_day?fmt(p.price_half_day)+' ½day':'—';
+    return`<div class="prod-card" onclick="openProductPanel('${p.id}')">
+      <div style="height:120px;overflow:hidden;background:${CAT_BG[p.category]||'var(--surf2)'};display:flex;align-items:center;justify-content:center;font-size:48px;position:relative;">
+        ${p.emoji}
+        ${p.status==='inactive'?'<div style="position:absolute;top:6px;right:6px;background:var(--red);color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px">INACTIVE</div>':''}
       </div>
       <div class="prod-body">
-        <span class="prod-badge ${CAT_COLORS[p.cat]||'pb-combo'}">${CAT_LABELS[p.cat]||p.cat}</span>
-        <div class="prod-name">${p.name}${p.blocked?'<span style="font-size:9.5px;background:var(--red);color:#fff;padding:1px 6px;border-radius:4px;margin-left:5px;font-weight:700">Blocked</span>':''}</div>
-        <div class="prod-dim">${p.dims||'—'}</div>
-        <div class="prod-price">${fmt(p.price)}<span class="prod-price-sub"> / ${p.duration||4}hrs</span></div>
-        ${p.maxKids?`<div style="font-size:11px;color:var(--text3);margin-top:4px">👦 Up to ${p.maxKids} children</div>`:''}
+        <span class="prod-badge ${CAT_COLORS[p.category]||'pb-combo'}">${CAT_LABELS[p.category]||p.category}</span>
+        <div class="prod-name">${p.name}</div>
+        ${accs.length?`<div style="font-size:10.5px;color:var(--text3);margin-top:3px;line-height:1.4">⚙️ ${accs.slice(0,3).join(', ')}${accs.length>3?'…':''}</div>`:''}
+        <div class="prod-price">${priceStr}</div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function openProductPanel(id){
   const p=DB.products.find(x=>x.id===id);if(!p)return;
-  const bookings=DB.bookings.filter(b=>b.productId===id);
+  const bks=DB.bookings.filter(b=>b.productId===id);
+  const accs=Array.isArray(p.accessories)?p.accessories:[];
   const html=`
     <div class="prod-detail-header">
-      ${p.img?`<img src="${p.img}" style="width:100%;height:200px;object-fit:cover;border-radius:12px;margin-bottom:12px;" loading="lazy">`:`<div class="prod-detail-emoji">${p.emoji}</div>`}
-      <span class="prod-badge ${CAT_COLORS[p.cat]||'pb-combo'}" style="font-size:12px;padding:4px 12px">${CAT_LABELS[p.cat]||p.cat}</span>
+      <div class="prod-detail-emoji">${p.emoji}</div>
+      <span class="prod-badge ${CAT_COLORS[p.category]||'pb-combo'}" style="font-size:12px;padding:4px 12px">${CAT_LABELS[p.category]||p.category}</span>
+      ${p.status==='inactive'?'<span style="background:var(--red);color:#fff;font-size:11px;font-weight:800;padding:3px 10px;border-radius:6px;margin-left:6px">INACTIVE</span>':''}
       <div class="prod-detail-name">${p.name}</div>
-      <div class="prod-detail-price">${fmt(p.price)} <span style="font-size:14px;color:var(--text3);font-weight:400">/ ${p.duration||4}hrs</span></div>
+      <div class="prod-detail-price">
+        ${p.price_full_day?`Full day: ${fmt(p.price_full_day)}`:''}
+        ${p.price_half_day?` &nbsp;·&nbsp; Half day: ${fmt(p.price_half_day)}`:''}
+      </div>
     </div>
     <div class="psec">
       <div class="psec-ttl">Details</div>
       <div class="dg">
-        <span class="dg-l">Dimensions</span><span class="dg-v">${p.dims||'—'}</span>
-        <span class="dg-l">Duration</span><span class="dg-v">${p.duration||4} hours</span>
-        ${p.maxKids?`<span class="dg-l">Max children</span><span class="dg-v">${p.maxKids}</span>`:''}
-        <span class="dg-l">Times booked</span><span class="dg-v">${bookings.length}</span>
+        <span class="dg-l">Category</span><span class="dg-v">${p.category||'—'}</span>
+        <span class="dg-l">Status</span><span class="dg-v">${p.status==='active'?'✅ Active':'🚫 Inactive'}</span>
+        <span class="dg-l">Times booked</span><span class="dg-v">${bks.length}</span>
       </div>
-      ${p.desc?`<div style="margin-top:10px;font-size:12.5px;color:var(--text2);line-height:1.6">${p.desc}</div>`:''}
+      ${accs.length?`<div style="margin-top:8px;font-size:12.5px;color:var(--text2)"><strong>⚙️ Accessories:</strong> ${accs.join(', ')}</div>`:''}
+      ${p.desc?`<div style="margin-top:8px;font-size:12.5px;color:var(--text2);line-height:1.6">${p.desc}</div>`:''}
+      ${p.notes?`<div style="margin-top:6px;font-size:12px;color:var(--text3)">📝 ${p.notes}</div>`:''}
     </div>
     <div style="display:flex;gap:7px;margin-bottom:14px">
       <button class="btn btn-pri btn-sm" onclick="editProduct('${id}')">✏ Edit</button>
-      <button class="btn btn-sec btn-sm" style="background:${p.blocked?'var(--green)':'var(--amber-bg)'};color:${p.blocked?'#fff':'var(--amber)'};border:1px solid ${p.blocked?'var(--green)':'var(--amber-b)'}" onclick="toggleBlock('${id}')">${p.blocked?'&#x2705; Unblock':'&#x1f6a7; Block / Repairs'}</button>
       <button class="btn btn-danger btn-sm" onclick="deleteProduct('${id}')">Delete</button>
     </div>
     <div class="psec">
-      <div class="psec-ttl">Recent Bookings (${bookings.length})</div>
-      ${bookings.length?bookings.slice(0,4).map(b=>{const c=gc(b.contactId);return`<div style="padding:8px;border:1.5px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:12.5px"><div style="font-weight:700">${c?c.fname+' '+c.lname:'—'} — ${fmtD(b.date)}</div><div style="color:var(--text3)">${b.time||''} · ${fmt(b.amount)} · ${b.status}</div></div>`}).join(''):'<div style="font-size:12px;color:var(--text3)">No bookings yet</div>'}
+      <div class="psec-ttl">Recent Bookings (${bks.length})</div>
+      ${bks.length?bks.slice(0,4).map(b=>{const c=gc(b.contactId);return`<div style="padding:8px;border:1.5px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:12.5px"><div style="font-weight:700">${c?c.fname+' '+c.lname:'—'} — ${fmtD(b.date)}</div><div style="color:var(--text3)">${b.time||''} · ${fmt(b.amount)} · ${b.status}</div></div>`}).join(''):'<div style="font-size:12px;color:var(--text3)">No bookings yet</div>'}
     </div>`;
   openPanel(p.name,'',html);
+}
+
+function openAddProduct(){
+  document.getElementById('prod-mt').textContent='Add Product';
+  document.getElementById('p-id').value='';
+  document.getElementById('p-name').value='';
+  document.getElementById('p-cat').value='Bubble House';
+  document.getElementById('p-status').value='active';
+  document.getElementById('p-desc').value='';
+  document.getElementById('p-halfday').value='';
+  document.getElementById('p-fullday').value='';
+  document.getElementById('p-accs').value='';
+  document.getElementById('p-notes').value='';
+  openModal('m-product');
 }
 
 function editProduct(id){
@@ -1730,55 +1754,58 @@ function editProduct(id){
   document.getElementById('prod-mt').textContent='Edit Product';
   document.getElementById('p-id').value=p.id;
   document.getElementById('p-name').value=p.name||'';
-  document.getElementById('p-cat').value=p.cat||'bubble';
-  document.getElementById('p-emoji').value=p.emoji||'🫧';
-  document.getElementById('p-price').value=p.price||'';
-  document.getElementById('p-dims').value=p.dims||'';
+  document.getElementById('p-cat').value=p.category||'Other';
+  document.getElementById('p-status').value=p.status||'active';
   document.getElementById('p-desc').value=p.desc||'';
-  document.getElementById('p-duration').value=p.duration||4;
-  document.getElementById('p-maxkids').value=p.maxKids||'';
+  document.getElementById('p-halfday').value=p.price_half_day||'';
+  document.getElementById('p-fullday').value=p.price_full_day||'';
+  const accs=Array.isArray(p.accessories)?p.accessories.join(', '):(p.accessories||'');
+  document.getElementById('p-accs').value=accs;
+  document.getElementById('p-notes').value=p.notes||'';
   openModal('m-product');
 }
 
-function toggleBlock(prodId){
-  const p=DB.products.find(x=>x.id===prodId);
-  if(!p)return;
-  if(p.blocked){
-    p.blocked=false;p.blockedReason='';
-    toast(p.name+' is now available for booking ✓','success');
-  } else {
-    const reason=prompt('Reason (e.g. In for repairs, Available from 1 June):','In for repairs');
-    if(!reason)return;
-    p.blocked=true;p.blockedReason=reason;
-    toast(p.name+' blocked: '+reason,'error');
-  }
-  save();renderProducts();renderServiceList();closePanel();
-}
-
-function saveProduct(){
+async function saveProduct(){
   const name=document.getElementById('p-name').value.trim();
   if(!name){toast('Product name required','error');return}
   const id=document.getElementById('p-id').value;
-  const prod={
-    id:id||uid(),name,
-    cat:document.getElementById('p-cat').value,
-    emoji:document.getElementById('p-emoji').value||'🫧',
-    price:Number(document.getElementById('p-price').value)||0,
-    dims:document.getElementById('p-dims').value.trim(),
-    desc:document.getElementById('p-desc').value.trim(),
-    duration:Number(document.getElementById('p-duration').value)||4,
-    maxKids:Number(document.getElementById('p-maxkids').value)||null
-  };
-  if(id){const i=DB.products.findIndex(p=>p.id===id);DB.products[i]=prod;toast('Product updated')}
-  else{DB.products.push(prod);toast('Product added ✓','success')}
-  save();closeModal('m-product');renderProducts();renderServiceList&&renderServiceList();
-  document.getElementById('p-id').value='';
+  const category=document.getElementById('p-cat').value;
+  const status=document.getElementById('p-status').value;
+  const desc=document.getElementById('p-desc').value.trim();
+  const halfDay=Number(document.getElementById('p-halfday').value)||0;
+  const fullDay=Number(document.getElementById('p-fullday').value)||0;
+  const accsRaw=document.getElementById('p-accs').value.trim();
+  const accsArr=accsRaw?accsRaw.split(',').map(s=>s.trim()).filter(Boolean):[];
+  const accsJson=JSON.stringify(accsArr);
+  const notes=document.getElementById('p-notes').value.trim();
+  try{
+    if(id){
+      await tursoQuery(
+        'UPDATE bb_products SET name=?,category=?,description=?,price_half_day=?,price_full_day=?,accessories=?,status=?,notes=? WHERE id=?',
+        [name,category,desc,halfDay,fullDay,accsJson,status,notes,Number(id)]
+      );
+      toast('Product updated ✓','success');
+    } else {
+      await tursoQuery(
+        'INSERT INTO bb_products (name,category,description,price_half_day,price_full_day,accessories,status,notes) VALUES (?,?,?,?,?,?,?,?)',
+        [name,category,desc,halfDay,fullDay,accsJson,status,notes]
+      );
+      toast('Product added ✓','success');
+    }
+    closeModal('m-product');
+    document.getElementById('p-id').value='';
+    await loadProducts();
+  }catch(e){toast('Save failed: '+e.message,'error');}
 }
 
-function deleteProduct(id){
+async function deleteProduct(id){
   if(!confirm('Delete this product?'))return;
-  DB.products=DB.products.filter(p=>p.id!==id);
-  save();closePanel();renderProducts();toast('Product deleted');
+  try{
+    await tursoQuery('DELETE FROM bb_products WHERE id=?',[Number(id)]);
+    closePanel();
+    toast('Product deleted','success');
+    await loadProducts();
+  }catch(e){toast('Delete failed: '+e.message,'error');}
 }
 
 // ══════════════════════════════════════════
@@ -2285,7 +2312,7 @@ function exportBackup(){
 function importBackup(input){
   const file=input.files[0];if(!file)return;
   const r=new FileReader();
-  r.onload=e=>{try{const d=JSON.parse(e.target.result);if(confirm('Replace all data?')){DB={...DB,...d};if(!DB.products||!DB.products.length)DB.products=[...DEFAULT_PRODUCTS];save();renderDash();gotoPage('dashboard');toast('Imported ✓','success')}}catch(err){toast('Invalid file','error')}};
+  r.onload=e=>{try{const d=JSON.parse(e.target.result);if(confirm('Replace all data?')){DB={...DB,...d};DB.products=[];save();renderDash();loadProducts();gotoPage('dashboard');toast('Imported ✓','success')}}catch(err){toast('Invalid file','error')}};
   r.readAsText(file);input.value='';
 }
 
@@ -2305,12 +2332,13 @@ document.addEventListener('DOMContentLoaded', function() {
   try { var el = document.getElementById('a-due'); if(el) el.value = today(); } catch(e) {}
   try { renderDash(); } catch(e) {}
   try { renderPipeline(); } catch(e) {}
-  try { renderProducts(); } catch(e) {}
   try { updateBadges(); } catch(e) {}
   try { loadEmailSettings(); } catch(e) {}
   try{ var el=document.getElementById('turso-url'); if(el)el.value=DB.cfg.tursoUrl||TURSO_URL; }catch(ex){}
   try{ var el=document.getElementById('turso-token'); if(el)el.value=DB.cfg.tursoToken||TURSO_TOKEN; }catch(ex){}
   if(DB.cfg.waNumber){ try{ var e=document.getElementById('s-wa'); if(e)e.value=DB.cfg.waNumber; }catch(ex){} }
+  // Load shared product catalogue from Turso
+  loadProducts().catch(function(e){ console.error('Initial loadProducts failed:', e); });
 });
 
 
@@ -2740,6 +2768,49 @@ async function tursoQuery(sql, args) {
   return { rows: rows, lastInsertRowid: result.last_insert_rowid ? Number(result.last_insert_rowid) : null, affectedRowCount: result.affected_row_count || 0 };
 }
 
+// ── PRODUCT CATALOGUE (shared with staff app via bb_products) ─────────────────
+function mapTursoProduct(row) {
+  var catShort = {'Jumping Castle':'castle','Bubble House':'bubble','Water Slide':'slide','Soft Play':'softplay','Combo':'combo','Accessory':'combo','Other':'softplay'};
+  var emojiMap = {castle:'🏰',bubble:'🫧',slide:'💧',softplay:'🧸',combo:'🎪'};
+  var cat = catShort[row.category] || 'combo';
+  var accVal = row.accessories;
+  var accArr = [];
+  if (Array.isArray(accVal)) { accArr = accVal; }
+  else if (typeof accVal === 'string' && accVal) {
+    try { accArr = JSON.parse(accVal); } catch(e) { accArr = accVal.split(',').map(function(s){return s.trim();}).filter(Boolean); }
+  }
+  return {
+    id: String(row.id),
+    _tursoId: row.id,
+    name: row.name,
+    category: row.category || 'Other',
+    cat: cat,
+    emoji: emojiMap[cat] || '🫧',
+    price: row.price_full_day || row.price_half_day || 0,
+    price_half_day: row.price_half_day || 0,
+    price_full_day: row.price_full_day || 0,
+    dims: '',
+    desc: row.description || '',
+    duration: 4,
+    maxKids: null,
+    blocked: row.status === 'inactive',
+    blockedReason: 'Currently unavailable',
+    accessories: accArr,
+    notes: row.notes || '',
+    status: row.status || 'active'
+  };
+}
+
+async function loadProducts() {
+  try {
+    var r = await tursoQuery('SELECT * FROM bb_products ORDER BY category, name ASC');
+    DB.products = r.rows.map(mapTursoProduct);
+    if (typeof renderProducts === 'function') try { renderProducts(); } catch(e) {}
+    if (typeof renderServiceList === 'function') try { renderServiceList(); } catch(e) {}
+    if (typeof populateSelects === 'function') try { populateSelects(); } catch(e) {}
+  } catch(e) { console.error('loadProducts:', e); }
+}
+
 function saveTursoSettings() {
   var url = (document.getElementById('turso-url') || {value:''}).value.trim();
   var token = (document.getElementById('turso-token') || {value:''}).value.trim();
@@ -2782,8 +2853,8 @@ function loadFromTurso() {
           if (remote[k]) DB[k] = remote[k];
         });
         if (remote.cfg) DB.cfg = Object.assign({}, DB.cfg, remote.cfg);
-        DB.products = DEFAULT_PRODUCTS.slice();
         save(); renderDash(); updateBadges();
+        loadProducts();
         toast('Data pulled from cloud ✓', 'success');
       } catch(e) { toast('Parse error: ' + e.message, 'error'); }
     }).catch(function(e) {
