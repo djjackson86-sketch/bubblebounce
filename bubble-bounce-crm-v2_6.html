@@ -392,8 +392,10 @@ textarea{resize:vertical;min-height:72px}
   .tb-sub { display: none !important; }
   .toast { bottom: 72px !important; left: 12px !important; right: 12px !important; }
   .mn-item span { font-size: 10px !important; }
-  * { max-width: 100% !important; }
-  *:not(.sidebar):not(.hamburger):not(.mob-nav):not(.overlay):not(.modal):not(.sidebar-mob-overlay) { min-width: 0 !important; }
+  .content * { max-width: 100% !important; }
+  .mob-nav { max-width: 100vw !important; }
+  .mn-item { max-width: none !important; flex: 1 !important; width: auto !important; min-width: 0 !important; }
+  *:not(.sidebar):not(.hamburger):not(.mob-nav):not(.mn-item):not(.overlay):not(.modal):not(.sidebar-mob-overlay) { min-width: 0 !important; }
 }
 </style>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
