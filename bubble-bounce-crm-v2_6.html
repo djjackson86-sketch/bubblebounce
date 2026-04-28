@@ -1772,21 +1772,21 @@ async function saveProduct(){
   const category=document.getElementById('p-cat').value;
   const status=document.getElementById('p-status').value;
   const desc=document.getElementById('p-desc').value.trim();
-  const halfDay=Number(document.getElementById('p-halfday').value)||0;
-  const fullDay=Number(document.getElementById('p-fullday').value)||0;
+  const halfDay=parseFloat(document.getElementById('p-halfday').value)||0;
+  const fullDay=parseFloat(document.getElementById('p-fullday').value)||0;
   const accsRaw=document.getElementById('p-accs').value.trim();
   const accsArr=accsRaw?accsRaw.split(',').map(s=>s.trim()).filter(Boolean):[];
   const accsJson=JSON.stringify(accsArr);
   const notes=document.getElementById('p-notes').value.trim();
   try{
     if(id){
-      await tursoQuery(
+      await tursoExec(
         'UPDATE bb_products SET name=?,category=?,description=?,price_half_day=?,price_full_day=?,accessories=?,status=?,notes=? WHERE id=?',
         [name,category,desc,halfDay,fullDay,accsJson,status,notes,Number(id)]
       );
       toast('Product updated ✓','success');
     } else {
-      await tursoQuery(
+      await tursoExec(
         'INSERT INTO bb_products (name,category,description,price_half_day,price_full_day,accessories,status,notes) VALUES (?,?,?,?,?,?,?,?)',
         [name,category,desc,halfDay,fullDay,accsJson,status,notes]
       );
@@ -2768,6 +2768,27 @@ async function tursoQuery(sql, args) {
   return { rows: rows, lastInsertRowid: result.last_insert_rowid ? Number(result.last_insert_rowid) : null, affectedRowCount: result.affected_row_count || 0 };
 }
 
+// ── tursoExec: use for INSERT / UPDATE / DELETE (no row mapping needed) ───────
+async function tursoExec(sql, args) {
+  var url = (DB.cfg.tursoUrl) || TURSO_URL;
+  var token = (DB.cfg.tursoToken) || TURSO_TOKEN;
+  var typedArgs = (args || []).map(function(v) {
+    if (v === null || v === undefined) return { type: 'null' };
+    if (typeof v === 'number') return Number.isInteger(v) ? { type: 'integer', value: String(v) } : { type: 'float', value: String(v) };
+    return { type: 'text', value: String(v) };
+  });
+  var res = await fetch(url + '/v2/pipeline', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requests: [{ type: 'execute', stmt: { sql: sql, args: typedArgs } }, { type: 'close' }] })
+  });
+  if (!res.ok) throw new Error('Turso HTTP ' + res.status);
+  var json = await res.json();
+  if (json.results[0].type === 'error') throw new Error(json.results[0].error.message);
+  var result = json.results[0].response.result;
+  return { lastInsertRowid: result.last_insert_rowid ? Number(result.last_insert_rowid) : null, affectedRowCount: result.affected_row_count || 0 };
+}
+
 // ── PRODUCT CATALOGUE (shared with staff app via bb_products) ─────────────────
 function mapTursoProduct(row) {
   var catShort = {'Jumping Castle':'castle','Bubble House':'bubble','Water Slide':'slide','Soft Play':'softplay','Combo':'combo','Accessory':'combo','Other':'softplay'};
@@ -2804,7 +2825,25 @@ function mapTursoProduct(row) {
 async function loadProducts() {
   try {
     var r = await tursoQuery('SELECT * FROM bb_products ORDER BY category, name ASC');
-    DB.products = r.rows.map(mapTursoProduct);
+    // r may be raw Turso result (cols + rows as cell arrays) — normalise to plain objects
+    var plainRows;
+    if (r.cols && Array.isArray(r.rows) && Array.isArray(r.rows[0])) {
+      var cols = r.cols.map(function(c) { return c.name; });
+      plainRows = r.rows.map(function(row) {
+        var obj = {};
+        cols.forEach(function(col, i) {
+          var cell = row[i];
+          var val = (cell && cell.type !== 'null') ? cell.value : null;
+          if (cell && (cell.type === 'integer' || cell.type === 'float') && val !== null) val = Number(val);
+          if (col === 'accessories' && val) { try { val = JSON.parse(val); } catch(e) {} }
+          obj[col] = val;
+        });
+        return obj;
+      });
+    } else {
+      plainRows = r.rows; // already plain objects (first tursoQuery path)
+    }
+    DB.products = plainRows.map(mapTursoProduct);
     if (typeof renderProducts === 'function') try { renderProducts(); } catch(e) {}
     if (typeof renderServiceList === 'function') try { renderServiceList(); } catch(e) {}
     if (typeof populateSelects === 'function') try { populateSelects(); } catch(e) {}
@@ -3301,67 +3340,4 @@ function applyMobileLayout() {
   var navH = mobNavEl ? Math.round(mobNavEl.getBoundingClientRect().height) || 60 : 60;
   var contentH = vh - topbarH - navH;
 
-  console.log('[MobileLayout] innerHeight:', vh, '| topbarH:', topbarH, '| navH:', navH, '| contentH:', contentH);
-
-  var content = document.querySelector('.content');
-  if (content) {
-    content.style.height = contentH + 'px';
-    content.style.maxHeight = contentH + 'px';
-    content.style.overflowY = 'auto';
-    content.style.webkitOverflowScrolling = 'touch';
-    content.style.overscrollBehavior = 'contain';
-    content.style.touchAction = 'pan-y';
-    content.style.flex = 'none';
-    // Bottom padding must exceed nav height so last items aren't hidden beneath it
-    content.style.paddingBottom = (navH + 24) + 'px';
-    content.style.boxSizing = 'border-box';
-  }
-
-  var app = document.querySelector('.app');
-  if (app) {
-    app.style.overflow = 'hidden';
-    app.style.height = vh + 'px';
-    app.style.display = 'flex';
-    app.style.flexDirection = 'column';
-  }
-  var main = document.querySelector('.main');
-  if (main) {
-    main.style.overflow = 'hidden';
-    main.style.flex = '1';
-    main.style.display = 'flex';
-    main.style.flexDirection = 'column';
-    main.style.minHeight = '0';
-  }
-  document.body.style.overflow = 'hidden';
-  document.body.style.height = vh + 'px';
-
-  // Make all tables horizontally scrollable
-  document.querySelectorAll('table').forEach(function(t) {
-    if (!t.parentElement.classList.contains('mob-table-wrap')) {
-      var wrap = document.createElement('div');
-      wrap.className = 'mob-table-wrap';
-      wrap.style.cssText = 'overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;';
-      t.parentNode.insertBefore(wrap, t);
-      wrap.appendChild(t);
-    }
-    t.style.cssText = 'width:max-content;min-width:100%;';
-  });
-
-  // Pipeline
-  var pipeWrap = document.querySelector('.pipe-wrap');
-  if (pipeWrap) {
-    pipeWrap.style.overflowX = 'auto';
-    pipeWrap.style.webkitOverflowScrolling = 'touch';
-    document.querySelectorAll('.stage').forEach(function(s) {
-      s.style.minWidth = '200px';
-      s.style.flexShrink = '0';
-    });
-  }
-}
-
-document.addEventListener('DOMContentLoaded', function() { applyMobileLayout(); });
-window.addEventListener('resize', applyMobileLayout);
-setTimeout(applyMobileLayout, 300);
-</script>
-</body>
-</html>
+  console.log('[MobileLayout] innerHeight:', vh, '| topbarH:', topbarH, '| navH:', navH, '| contentH
