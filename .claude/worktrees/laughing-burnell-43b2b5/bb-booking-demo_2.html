@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bubble &amp; Bounce — Book Your Inflatable</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito Sans',sans-serif;background:#F5F3FF;min-height:100vh}
+
+/* ── TOP BAR ── */
+.topbar{background:linear-gradient(135deg,#1E1B4B,#4C1D95);padding:14px 24px;display:flex;align-items:center;gap:10px}
+.topbar-logo{font-size:22px}
+.topbar-title{font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;color:#fff}
+.topbar-sub{font-size:11px;color:rgba(255,255,255,.5);margin-top:1px}
+
+/* ── LAYOUT ── */
+.layout{max-width:680px;margin:0 auto;padding:28px 16px}
+
+/* ── WIDGET ── */
+.widget-header{background:linear-gradient(135deg,#7C3AED,#EC4899);border-radius:16px 16px 0 0;padding:20px 20px 16px;text-align:center;color:#fff}
+.widget-header .wlogo{font-size:32px;margin-bottom:4px}
+.widget-header .wbiz{font-family:'Nunito',sans-serif;font-size:17px;font-weight:900;letter-spacing:-.3px}
+.widget-header .wsub{font-size:11.5px;opacity:.65;margin-top:2px}
+.widget-body{background:#fff;border-radius:0 0 16px 16px;padding:20px;box-shadow:0 8px 32px rgba(30,27,75,.1)}
+
+label{display:block;font-size:10.5px;font-weight:700;color:#4C4780;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+input,select,textarea{width:100%;padding:10px 13px;border:1.5px solid #DDD6FE;border-radius:9px;font-size:13px;font-family:'Nunito Sans',sans-serif;color:#1E1B4B;outline:none;background:#fff;transition:border .15s}
+input:focus,select:focus,textarea:focus{border-color:#F472B6;box-shadow:0 0 0 3px rgba(244,114,182,.12)}
+.fr{margin-bottom:14px}
+
+/* Date + Time row — fix z-index so date picker doesn't hide behind time select */
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;align-items:start}
+.row > div{position:relative}
+.row > div:first-child{z-index:3}
+.row > div:last-child{z-index:2}
+
+.price-tag{font-family:'Nunito',sans-serif;font-size:26px;font-weight:900;color:#EC4899;margin:6px 0 2px;min-height:32px}
+.note{font-size:11.5px;color:#9B97C8;margin-bottom:10px;line-height:1.5}
+.summary{background:#FDF2F8;border:1.5px solid #FBCFE8;border-radius:11px;padding:12px 15px;margin-bottom:14px;font-size:13px;color:#6B21A8;display:none;line-height:1.8}
+.err-msg{color:#DC2626;font-size:12.5px;font-weight:700;min-height:18px;margin-bottom:10px}
+.submit-btn{width:100%;padding:15px;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;background:linear-gradient(135deg,#F472B6,#7C3AED);color:#fff;cursor:pointer;box-shadow:0 4px 16px rgba(244,114,182,.35);transition:all .15s;letter-spacing:.3px}
+.submit-btn:hover{transform:translateY(-1px);box-shadow:0 6px 22px rgba(244,114,182,.45)}
+.submit-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.cashless-note{text-align:center;font-size:11px;color:#9B97C8;margin-top:10px;line-height:1.6}
+
+.success-box{background:#F0FDF4;border:1.5px solid #A7F3D0;border-radius:14px;padding:28px 20px;text-align:center;display:none}
+.success-box h3{font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;color:#059669;margin-bottom:8px}
+.success-box p{font-size:13px;color:#4C4780;line-height:1.7}
+
+@media(max-width:480px){
+  .row{grid-template-columns:1fr}
+  .layout{padding:16px 12px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">🫧</div>
+  <div>
+    <div class="topbar-title">Bubble &amp; Bounce Inflatables</div>
+    <div class="topbar-sub">Gauteng's favourite bubble house &amp; jumping castle hire</div>
+  </div>
+</div>
+
+<div class="layout">
+
+  <div class="widget-header">
+    <div class="wlogo">🫧</div>
+    <div class="wbiz">Book Your Inflatable</div>
+    <div class="wsub">Fill in the form below — we'll confirm within 1 hour</div>
+  </div>
+
+  <div class="widget-body">
+    <div id="booking-form">
+      <div class="fr">
+        <label>Choose Your Inflatable *</label>
+        <select id="w-prod" onchange="updatePrice()">
+          <option value="">Select a service…</option>
+          <option value="p1|950|White Castle with Obstacle">🏰 White Castle with Obstacle — R950</option>
+          <option value="p2|950|White Soft Play Set">🧸 White Soft Play Set — R950</option>
+          <option value="p3|2195|Bubble House 4m – Balloons &amp; Operator">🫧 Bubble House 4m – Balloons &amp; Operator — R2,195</option>
+          <option value="p4|1895|Bubble House 3m – Balloons &amp; Operator">🫧 Bubble House 3m – Balloons &amp; Operator — R1,895</option>
+          <option value="p5|1695|Bubble House 3m – No Balloons">🫧 Bubble House 3m – No Balloons — R1,695</option>
+          <option value="p6|750|Adventure Island">🎪 Adventure Island — R750</option>
+          <option value="p7|750|Wave Water Slide">🌊 Wave Water Slide — R750</option>
+          <option value="p8|650|Cool Kids 4-in-1">🎠 Cool Kids 4-in-1 — R650</option>
+          <option value="p9|895|White Castle 3m × 3m">🏰 White Castle 3m × 3m — R895</option>
+          <option value="p10|1575|White Castle 3m with Balloon Garland">🏰 White Castle 3m with Balloon Garland — R1,575</option>
+          <option value="p11|1675|White Castle with Obstacle &amp; Balloons">🏰 White Castle with Obstacle &amp; Balloons — R1,675</option>
+          <option value="p12|1995|Bubble House 4m – No Balloons">🫧 Bubble House 4m – No Balloons — R1,995</option>
+          <option value="p13|1895|Bubble Tent – Gender Reveal">🎀 Bubble Tent – Gender Reveal — R1,895</option>
+          <option value="p14|1595|Bubble Tent 2.5m">🫧 Bubble Tent 2.5m — R1,595</option>
+        </select>
+        <div class="price-tag" id="w-price"></div>
+        <div class="note">4-hour hire · Operator included · Delivery quoted on area</div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Event Date *</label>
+          <input type="date" id="w-date" min="2026-04-27" onchange="updateSummary()">
+        </div>
+        <div>
+          <label>Time Slot</label>
+          <select id="w-time" onchange="updateSummary()">
+            <option>10:00 – 14:00</option>
+            <option>08:00 – 12:00</option>
+            <option>12:00 – 16:00</option>
+            <option>14:00 – 18:00</option>
+            <option>09:00 – 13:00</option>
+            <option>11:00 – 15:00</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div><label>First Name *</label><input id="w-fn" placeholder="Sarah"></div>
+        <div><label>Last Name</label><input id="w-ln" placeholder="Johnson"></div>
+      </div>
+      <div class="row">
+        <div><label>Phone *</label><input id="w-ph" type="tel" placeholder="082 000 0000"></div>
+        <div><label>Email</label><input id="w-em" type="email" placeholder="sarah@email.com"></div>
+      </div>
+      <div class="row">
+        <div><label>Area / Suburb</label><input id="w-ar" placeholder="e.g. Sandton"></div>
+        <div>
+          <label>Event Type</label>
+          <select id="w-ev">
+            <option>🎂 Birthday Party</option>
+            <option>🏢 Corporate Event</option>
+            <option>🎀 Gender Reveal</option>
+            <option>💍 Wedding</option>
+            <option>🏫 School Fun Day</option>
+            <option>📷 Photoshoot</option>
+            <option>✨ Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="fr">
+        <label>Balloon Colours (optional)</label>
+        <input id="w-bal" placeholder="e.g. Pink and white, Blue and gold…">
+      </div>
+      <div class="fr">
+        <label>Special Requests</label>
+        <textarea id="w-notes" style="min-height:56px;resize:vertical" placeholder="Any special access, setup notes…"></textarea>
+      </div>
+
+      <div class="summary" id="w-sum"></div>
+      <div class="err-msg" id="w-err"></div>
+      <button class="submit-btn" onclick="submitBooking()" id="sub-btn">✅ Request My Booking</button>
+      <div class="cashless-note">Your booking details go straight to WhatsApp · We confirm within 1 hour · 50% deposit secures your date</div>
+    </div>
+
+    <div class="success-box" id="success-box">
+      <div style="font-size:44px;margin-bottom:10px">💬</div>
+      <h3>Opening WhatsApp…</h3>
+      <p>Your booking details are pre-filled in a WhatsApp message to Sidney.<br><br>
+      Just tap <strong>Send</strong> and we will confirm your booking within 1 hour!</p>
+      <div style="margin-top:12px">
+        <a href="#" onclick="reopenWA()" style="display:inline-block;background:#25D366;color:#fff;padding:10px 22px;border-radius:10px;font-weight:800;font-size:14px;text-decoration:none;margin-top:8px">💬 Open WhatsApp Again</a>
+      </div>
+      <button onclick="resetForm()" style="display:block;margin:12px auto 0;padding:10px 24px;border:2px solid #7C3AED;border-radius:10px;background:transparent;color:#7C3AED;font-weight:700;font-size:13px;cursor:pointer;font-family:'Nunito Sans',sans-serif">Make Another Booking</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Session bookings array — used for same-session clash detection only
+var bookings = [];
+var bookingCount = 0;
+
+var UNIT_MAP = {
+  'p1':'CASTLE_OBS','p11':'CASTLE_OBS',
+  'p9':'CASTLE_3M','p10':'CASTLE_3M',
+  'p3':'BUBBLE_4M','p12':'BUBBLE_4M',
+  'p4':'BUBBLE_3M','p5':'BUBBLE_3M',
+};
+
+function updatePrice() {
+  var sel = document.getElementById('w-prod');
+  var val = sel.options[sel.selectedIndex].value;
+  if (!val) { document.getElementById('w-price').textContent = ''; document.getElementById('w-sum').style.display='none'; return; }
+  var price = parseInt(val.split('|')[1]);
+  document.getElementById('w-price').textContent = 'R' + price.toLocaleString('en-ZA');
+  updateSummary();
+}
+
+function updateSummary() {
+  var sel = document.getElementById('w-prod');
+  var val = sel.options[sel.selectedIndex].value;
+  var date = document.getElementById('w-date').value;
+  var time = document.getElementById('w-time').value;
+  if (!val || !date) { document.getElementById('w-sum').style.display='none'; return; }
+  var parts = val.split('|');
+  var price = parseInt(parts[1]);
+  var name = parts[2];
+  var dep = Math.round(price * 0.5);
+  var d = new Date(date + 'T00:00:00');
+  var dStr = d.toLocaleDateString('en-ZA', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  var sum = document.getElementById('w-sum');
+  sum.style.display = 'block';
+  sum.innerHTML = '🫧 <strong>' + name + '</strong><br>📅 ' + dStr + ' · ' + time + '<br>💳 50% deposit to secure: <strong>R' + dep.toLocaleString('en-ZA') + '</strong>';
+}
+
+function submitBooking() {
+  var err = document.getElementById('w-err');
+  err.textContent = '';
+  var sel = document.getElementById('w-prod');
+  var val = sel.options[sel.selectedIndex].value;
+  var date = document.getElementById('w-date').value;
+  var fn = document.getElementById('w-fn').value.trim();
+  var ph = document.getElementById('w-ph').value.trim();
+  if (!val)  { err.textContent = 'Please select an inflatable'; return; }
+  if (!date) { err.textContent = 'Please choose a date'; return; }
+  if (!fn)   { err.textContent = 'Please enter your first name'; return; }
+  if (!ph)   { err.textContent = 'Please enter your phone number'; return; }
+
+  var parts = val.split('|');
+  var price = parseInt(parts[1]);
+  var prodName = parts[2];
+  var ln    = document.getElementById('w-ln').value.trim();
+  var em    = document.getElementById('w-em').value.trim();
+  var ar    = document.getElementById('w-ar').value.trim();
+  var ev    = document.getElementById('w-ev').value;
+  var bal   = document.getElementById('w-bal').value.trim();
+  var notes = document.getElementById('w-notes').value.trim();
+  var time  = document.getElementById('w-time').value;
+
+  // Same-session clash check — same physical unit, same date & time
+  var bookedUnit = UNIT_MAP[parts[0]] || parts[0];
+  var clash = bookings.find(function(b){
+    var bUnit = UNIT_MAP[b.prodId] || b.prodId;
+    return bUnit === bookedUnit && b.rawDate === date && b.time === time && b.status !== 'cancelled';
+  });
+  if (clash) {
+    err.textContent = 'That inflatable is already booked for that slot ("' + clash.prod + '") — please choose a different time or date.';
+    return;
+  }
+
+  var btn = document.getElementById('sub-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+
+  var d = new Date(date + 'T00:00:00');
+  var dStr = d.toLocaleDateString('en-ZA', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  var dep = Math.round(price * 0.5);
+
+  var msg = 'Hi! I would like to book the following:\n\n' +
+    '🫧 *' + prodName + '*\n' +
+    '📅 ' + dStr + '\n' +
+    '🕐 ' + time + '\n' +
+    '💳 Price: R' + price.toLocaleString('en-ZA') + ' (50% deposit: R' + dep.toLocaleString('en-ZA') + ')\n\n' +
+    '*My Details:*\n' +
+    '👤 ' + fn + (ln ? ' ' + ln : '') + '\n' +
+    '📞 ' + ph + '\n' +
+    (em    ? '📧 ' + em    + '\n' : '') +
+    (ar    ? '📍 ' + ar    + '\n' : '') +
+    '🎉 Event: ' + ev + '\n' +
+    (bal   ? '🎈 Balloon colours: ' + bal   + '\n' : '') +
+    (notes ? '📝 Notes: '          + notes + '\n' : '') +
+    '\nPlease confirm my booking. Thank you!';
+
+  var waNumber = '27648193770';
+  window._lastWaUrl = 'https://wa.me/' + waNumber + '?text=' + encodeURIComponent(msg);
+
+  // Record booking for clash detection
+  bookingCount++;
+  bookings.unshift({
+    id: bookingCount, prodId: parts[0], rawDate: date,
+    prod: prodName, time: time, status: 'pending'
+  });
+
+  document.getElementById('booking-form').style.display = 'none';
+  document.getElementById('success-box').style.display = 'block';
+  setTimeout(function() { window.open(window._lastWaUrl, '_blank'); }, 600);
+}
+
+function reopenWA() {
+  if (window._lastWaUrl) window.open(window._lastWaUrl, '_blank');
+  return false;
+}
+
+function resetForm() {
+  document.getElementById('booking-form').style.display = 'block';
+  document.getElementById('success-box').style.display = 'none';
+  document.getElementById('sub-btn').disabled = false;
+  document.getElementById('sub-btn').textContent = '✅ Request My Booking';
+  document.getElementById('w-prod').selectedIndex = 0;
+  document.getElementById('w-price').textContent = '';
+  document.getElementById('w-sum').style.display = 'none';
+  document.getElementById('w-err').textContent = '';
+  ['w-fn','w-ln','w-ph','w-em','w-ar','w-bal','w-notes'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('w-date').value = '';
+}
+</script>
+</body>
+</html>
