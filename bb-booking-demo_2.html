@@ -30,7 +30,7 @@ input,select,textarea{width:100%;padding:10px 13px;border:1.5px solid #DDD6FE;bo
 input:focus,select:focus,textarea:focus{border-color:#F472B6;box-shadow:0 0 0 3px rgba(244,114,182,.12)}
 .fr{margin-bottom:14px}
 
-/* Date + Time row — fix z-index so date picker doesn't hide behind time select */
+/* Date + Time row */
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;align-items:start}
 .row > div{position:relative}
 .row > div:first-child{z-index:3}
@@ -38,6 +38,10 @@ input:focus,select:focus,textarea:focus{border-color:#F472B6;box-shadow:0 0 0 3p
 
 .price-tag{font-family:'Nunito',sans-serif;font-size:26px;font-weight:900;color:#EC4899;margin:6px 0 2px;min-height:32px}
 .note{font-size:11.5px;color:#9B97C8;margin-bottom:10px;line-height:1.5}
+.avail-msg{font-size:12px;font-weight:700;min-height:18px;margin-top:4px}
+.avail-ok{color:#059669}
+.avail-no{color:#DC2626}
+.avail-loading{color:#9B97C8}
 .summary{background:#FDF2F8;border:1.5px solid #FBCFE8;border-radius:11px;padding:12px 15px;margin-bottom:14px;font-size:13px;color:#6B21A8;display:none;line-height:1.8}
 .err-msg{color:#DC2626;font-size:12.5px;font-weight:700;min-height:18px;margin-bottom:10px}
 .submit-btn{width:100%;padding:15px;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;background:linear-gradient(135deg,#F472B6,#7C3AED);color:#fff;cursor:pointer;box-shadow:0 4px 16px rgba(244,114,182,.35);transition:all .15s;letter-spacing:.3px}
@@ -48,6 +52,8 @@ input:focus,select:focus,textarea:focus{border-color:#F472B6;box-shadow:0 0 0 3p
 .success-box{background:#F0FDF4;border:1.5px solid #A7F3D0;border-radius:14px;padding:28px 20px;text-align:center;display:none}
 .success-box h3{font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;color:#059669;margin-bottom:8px}
 .success-box p{font-size:13px;color:#4C4780;line-height:1.7}
+
+.loading-overlay{text-align:center;padding:32px;color:#9B97C8;font-size:13px}
 
 @media(max-width:480px){
   .row{grid-template-columns:1fr}
@@ -77,35 +83,22 @@ input:focus,select:focus,textarea:focus{border-color:#F472B6;box-shadow:0 0 0 3p
     <div id="booking-form">
       <div class="fr">
         <label>Choose Your Inflatable *</label>
-        <select id="w-prod" onchange="updatePrice()">
-          <option value="">Select a service…</option>
-          <option value="p1|950|White Castle with Obstacle">🏰 White Castle with Obstacle — R950</option>
-          <option value="p2|950|White Soft Play Set">🧸 White Soft Play Set — R950</option>
-          <option value="p3|2195|Bubble House 4m – Balloons &amp; Operator">🫧 Bubble House 4m – Balloons &amp; Operator — R2,195</option>
-          <option value="p4|1895|Bubble House 3m – Balloons &amp; Operator">🫧 Bubble House 3m – Balloons &amp; Operator — R1,895</option>
-          <option value="p5|1695|Bubble House 3m – No Balloons">🫧 Bubble House 3m – No Balloons — R1,695</option>
-          <option value="p6|750|Adventure Island">🎪 Adventure Island — R750</option>
-          <option value="p7|750|Wave Water Slide">🌊 Wave Water Slide — R750</option>
-          <option value="p8|650|Cool Kids 4-in-1">🎠 Cool Kids 4-in-1 — R650</option>
-          <option value="p9|895|White Castle 3m × 3m">🏰 White Castle 3m × 3m — R895</option>
-          <option value="p10|1575|White Castle 3m with Balloon Garland">🏰 White Castle 3m with Balloon Garland — R1,575</option>
-          <option value="p11|1675|White Castle with Obstacle &amp; Balloons">🏰 White Castle with Obstacle &amp; Balloons — R1,675</option>
-          <option value="p12|1995|Bubble House 4m – No Balloons">🫧 Bubble House 4m – No Balloons — R1,995</option>
-          <option value="p13|1895|Bubble Tent – Gender Reveal">🎀 Bubble Tent – Gender Reveal — R1,895</option>
-          <option value="p14|1595|Bubble Tent 2.5m">🫧 Bubble Tent 2.5m — R1,595</option>
+        <select id="w-prod" onchange="onProdChange()">
+          <option value="">Loading services…</option>
         </select>
         <div class="price-tag" id="w-price"></div>
+        <div class="avail-msg" id="w-avail"></div>
         <div class="note">4-hour hire · Operator included · Delivery quoted on area</div>
       </div>
 
       <div class="row">
         <div>
           <label>Event Date *</label>
-          <input type="date" id="w-date" min="2026-04-27" onchange="updateSummary()">
+          <input type="date" id="w-date" onchange="checkAvailability()">
         </div>
         <div>
           <label>Time Slot</label>
-          <select id="w-time" onchange="updateSummary()">
+          <select id="w-time" onchange="checkAvailability()">
             <option>10:00 – 14:00</option>
             <option>08:00 – 12:00</option>
             <option>12:00 – 16:00</option>
@@ -157,7 +150,7 @@ input:focus,select:focus,textarea:focus{border-color:#F472B6;box-shadow:0 0 0 3p
     <div class="success-box" id="success-box">
       <div style="font-size:44px;margin-bottom:10px">💬</div>
       <h3>Opening WhatsApp…</h3>
-      <p>Your booking details are pre-filled in a WhatsApp message to Sidney.<br><br>
+      <p>Your booking request has been saved and your details are pre-filled in a WhatsApp message to Sidney.<br><br>
       Just tap <strong>Send</strong> and we will confirm your booking within 1 hour!</p>
       <div style="margin-top:12px">
         <a href="#" onclick="reopenWA()" style="display:inline-block;background:#25D366;color:#fff;padding:10px 22px;border-radius:10px;font-weight:800;font-size:14px;text-decoration:none;margin-top:8px">💬 Open WhatsApp Again</a>
@@ -169,96 +162,269 @@ input:focus,select:focus,textarea:focus{border-color:#F472B6;box-shadow:0 0 0 3p
 </div>
 
 <script>
-// Session bookings array — used for same-session clash detection only
-var bookings = [];
-var bookingCount = 0;
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TURSO CONFIG
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+var TURSO_URL   = 'https://bubblebounce-djjackson86-sketch.aws-eu-west-1.turso.io';
+var TURSO_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJleHAiOjE4MDg5MzExMTIsImdpZCI6ImZmNzliYWYzLWEwYzYtNDVjYy1iNjdkLTU1MjllNGQ0YTA2YiIsImlhdCI6MTc3NzM5NTExMiwicmlkIjoiYTRlZmFmNTAtYzQ0ZC00YzRjLWI3OTgtMjQ0ZjYyYWI5MmVjIn0.waVq2Pp9F1oBoR1xM0j6DSExClezVMmBZRjQ9PW96tFASRWNgFKpYGUjk7VmhaK-ltPG0XsFTSyX1CRiqmd-Bw';
 
-var UNIT_MAP = {
-  'p1':'CASTLE_OBS','p11':'CASTLE_OBS',
-  'p9':'CASTLE_3M','p10':'CASTLE_3M',
-  'p3':'BUBBLE_4M','p12':'BUBBLE_4M',
-  'p4':'BUBBLE_3M','p5':'BUBBLE_3M',
+async function tursoQuery(sql, args) {
+  var typedArgs = (args || []).map(function(v) {
+    if (v === null || v === undefined) return { type: 'null' };
+    if (typeof v === 'number') return Number.isInteger(v) ? { type: 'integer', value: String(v) } : { type: 'float', value: String(v) };
+    return { type: 'text', value: String(v) };
+  });
+  var res = await fetch(TURSO_URL + '/v2/pipeline', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + TURSO_TOKEN, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requests: [{ type: 'execute', stmt: { sql: sql, args: typedArgs } }, { type: 'close' }] })
+  });
+  if (!res.ok) throw new Error('Turso HTTP ' + res.status);
+  var json = await res.json();
+  if (json.results[0].type === 'error') throw new Error(json.results[0].error.message);
+  var result = json.results[0].response.result;
+  var cols = result.cols.map(function(c) { return c.name; });
+  var rows = result.rows.map(function(row) {
+    var obj = {};
+    cols.forEach(function(col, i) {
+      var cell = row[i];
+      var val = (cell && cell.type !== 'null') ? cell.value : null;
+      if (cell && (cell.type === 'integer' || cell.type === 'float') && val !== null) val = Number(val);
+      obj[col] = val;
+    });
+    return obj;
+  });
+  return { rows: rows, lastInsertRowid: result.last_insert_rowid ? Number(result.last_insert_rowid) : null };
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PHYSICAL UNIT MAP — same as CRM / staff app
+// Prevents double-booking variants of the same inflatable
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+var ITEM_TO_UNIT = {
+  'Small Bubble Tent':                           'BUBBLE_TENT_SM',
+  'Large Bubble Tent':                           'BUBBLE_TENT_LG',
+  'Small Bubble Bouncy House':                   'BUBBLE_3M',
+  'Large Bubble Bouncy House':                   'BUBBLE_4M',
+  'Bubble House 3m – Balloons & Operator': 'BUBBLE_3M',
+  'Bubble House 4m – Balloons & Operator': 'BUBBLE_4M',
+  'Bubble Tent – Gender Reveal':            'BUBBLE_TENT_LG',
+  'White Jumping Castle':                        'CASTLE_3M',
+  'White Castle with Obstacle':                  'CASTLE_OBSTACLE',
+  'White Castle 3m with Balloon Garland':        'CASTLE_3M',
+  'White Castle with Obstacle & Balloons':       'CASTLE_OBSTACLE',
+  'Cool Kids 4-in-1':                           'COOL_KIDS',
+  'Adventure Island':                           'ADVENTURE_ISLAND',
+  'Wave Slide':                                 'WAVE_SLIDE',
+  'Small Water Slide':                          'SMALL_SLIDE',
+  'White Soft Play Set':                        'SOFT_PLAY',
 };
+
+// Get all item names that share the same physical unit
+function getSiblings(name) {
+  var unit = ITEM_TO_UNIT[name];
+  if (!unit) return [name];
+  return Object.keys(ITEM_TO_UNIT).filter(function(n) { return ITEM_TO_UNIT[n] === unit; });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STATE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+var products = [];        // loaded from bb_products
+var bookedDates = [];     // loaded from bb_bookings for availability check
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// LOAD PRODUCTS FROM TURSO
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+var CAT_EMOJI = {'Bubble House':'🫧','Jumping Castle':'🏰','Water Slide':'💧','Combo':'🎪','Soft Play':'🧸','Other':'🎈'};
+
+async function loadProducts() {
+  try {
+    var r = await tursoQuery("SELECT id, name, category, price_full_day, price_half_day, status FROM bb_products WHERE status='active' ORDER BY category, name ASC");
+    products = r.rows;
+    populateProductSelect();
+  } catch(e) {
+    console.error('loadProducts:', e);
+    document.getElementById('w-prod').innerHTML = '<option value="">Unable to load services — please refresh</option>';
+  }
+}
+
+function populateProductSelect() {
+  var cats = {};
+  products.forEach(function(p) {
+    if (!cats[p.category]) cats[p.category] = [];
+    cats[p.category].push(p);
+  });
+  var html = '<option value="">Select a service…</option>';
+  Object.keys(cats).forEach(function(cat) {
+    var emoji = CAT_EMOJI[cat] || '🎈';
+    html += '<optgroup label="' + emoji + ' ' + cat + '">';
+    cats[cat].forEach(function(p) {
+      var price = p.price_full_day || p.price_half_day || 0;
+      html += '<option value="' + p.id + '">' + emoji + ' ' + p.name + ' — R' + price.toLocaleString('en-ZA') + '</option>';
+    });
+    html += '</optgroup>';
+  });
+  document.getElementById('w-prod').innerHTML = html;
+  // Set today's min date
+  var today = new Date(); today.setDate(today.getDate()+1);
+  document.getElementById('w-date').min = today.toISOString().slice(0,10);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// AVAILABILITY CHECKING
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+var _availTimer = null;
+function onProdChange() {
+  updatePrice();
+  checkAvailability();
+}
 
 function updatePrice() {
   var sel = document.getElementById('w-prod');
-  var val = sel.options[sel.selectedIndex].value;
-  if (!val) { document.getElementById('w-price').textContent = ''; document.getElementById('w-sum').style.display='none'; return; }
-  var price = parseInt(val.split('|')[1]);
+  var pid = sel.value;
+  if (!pid) { document.getElementById('w-price').textContent = ''; return; }
+  var p = products.find(function(x){ return x.id == pid; });
+  if (!p) return;
+  var price = p.price_full_day || p.price_half_day || 0;
   document.getElementById('w-price').textContent = 'R' + price.toLocaleString('en-ZA');
   updateSummary();
 }
 
-function updateSummary() {
-  var sel = document.getElementById('w-prod');
-  var val = sel.options[sel.selectedIndex].value;
+function checkAvailability() {
+  updateSummary();
+  var pid = document.getElementById('w-prod').value;
   var date = document.getElementById('w-date').value;
   var time = document.getElementById('w-time').value;
-  if (!val || !date) { document.getElementById('w-sum').style.display='none'; return; }
-  var parts = val.split('|');
-  var price = parseInt(parts[1]);
-  var name = parts[2];
+  var avEl = document.getElementById('w-avail');
+  if (!pid || !date) { avEl.textContent = ''; return; }
+  avEl.className = 'avail-msg avail-loading';
+  avEl.textContent = 'Checking availability…';
+  clearTimeout(_availTimer);
+  _availTimer = setTimeout(function(){ doAvailCheck(pid, date, time, avEl); }, 400);
+}
+
+async function doAvailCheck(pid, date, time, avEl) {
+  try {
+    var p = products.find(function(x){ return x.id == pid; });
+    if (!p) return;
+    var siblings = getSiblings(p.name);
+    // Build OR clause for all sibling names
+    var placeholders = siblings.map(function(){ return '?'; }).join(',');
+    var r = await tursoQuery(
+      "SELECT id FROM bb_bookings WHERE item IN (" + placeholders + ") AND date=? AND status IN ('pending','confirmed') LIMIT 1",
+      siblings.concat([date])
+    );
+    if (r.rows.length > 0) {
+      avEl.className = 'avail-msg avail-no';
+      avEl.textContent = '❌ Sorry, this inflatable is already booked on that date — please choose another date.';
+      document.getElementById('sub-btn').disabled = true;
+    } else {
+      avEl.className = 'avail-msg avail-ok';
+      avEl.textContent = '✅ Available on this date!';
+      document.getElementById('sub-btn').disabled = false;
+    }
+  } catch(e) {
+    console.error('Availability check failed:', e);
+    avEl.textContent = '';
+    document.getElementById('sub-btn').disabled = false;
+  }
+}
+
+function updateSummary() {
+  var pid = document.getElementById('w-prod').value;
+  var date = document.getElementById('w-date').value;
+  var time = document.getElementById('w-time').value;
+  if (!pid || !date) { document.getElementById('w-sum').style.display='none'; return; }
+  var p = products.find(function(x){ return x.id == pid; });
+  if (!p) return;
+  var price = p.price_full_day || p.price_half_day || 0;
   var dep = Math.round(price * 0.5);
   var d = new Date(date + 'T00:00:00');
   var dStr = d.toLocaleDateString('en-ZA', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  var emoji = CAT_EMOJI[p.category] || '🎈';
   var sum = document.getElementById('w-sum');
   sum.style.display = 'block';
-  sum.innerHTML = '🫧 <strong>' + name + '</strong><br>📅 ' + dStr + ' · ' + time + '<br>💳 50% deposit to secure: <strong>R' + dep.toLocaleString('en-ZA') + '</strong>';
+  sum.innerHTML = emoji + ' <strong>' + p.name + '</strong><br>📅 ' + dStr + ' · ' + time + '<br>💳 50% deposit to secure: <strong>R' + dep.toLocaleString('en-ZA') + '</strong>';
 }
 
-function submitBooking() {
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SUBMIT BOOKING
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function submitBooking() {
   var err = document.getElementById('w-err');
   err.textContent = '';
-  var sel = document.getElementById('w-prod');
-  var val = sel.options[sel.selectedIndex].value;
-  var date = document.getElementById('w-date').value;
-  var fn = document.getElementById('w-fn').value.trim();
-  var ph = document.getElementById('w-ph').value.trim();
-  if (!val)  { err.textContent = 'Please select an inflatable'; return; }
+  var pid   = document.getElementById('w-prod').value;
+  var date  = document.getElementById('w-date').value;
+  var fn    = document.getElementById('w-fn').value.trim();
+  var ph    = document.getElementById('w-ph').value.trim();
+  if (!pid)  { err.textContent = 'Please select an inflatable'; return; }
   if (!date) { err.textContent = 'Please choose a date'; return; }
   if (!fn)   { err.textContent = 'Please enter your first name'; return; }
   if (!ph)   { err.textContent = 'Please enter your phone number'; return; }
 
-  var parts = val.split('|');
-  var price = parseInt(parts[1]);
-  var prodName = parts[2];
-  var ln    = document.getElementById('w-ln').value.trim();
-  var em    = document.getElementById('w-em').value.trim();
-  var ar    = document.getElementById('w-ar').value.trim();
-  var ev    = document.getElementById('w-ev').value;
-  var bal   = document.getElementById('w-bal').value.trim();
-  var notes = document.getElementById('w-notes').value.trim();
-  var time  = document.getElementById('w-time').value;
-
-  // Same-session clash check — same physical unit, same date & time
-  var bookedUnit = UNIT_MAP[parts[0]] || parts[0];
-  var clash = bookings.find(function(b){
-    var bUnit = UNIT_MAP[b.prodId] || b.prodId;
-    return bUnit === bookedUnit && b.rawDate === date && b.time === time && b.status !== 'cancelled';
-  });
-  if (clash) {
-    err.textContent = 'That inflatable is already booked for that slot ("' + clash.prod + '") — please choose a different time or date.';
-    return;
-  }
+  var p = products.find(function(x){ return x.id == pid; });
+  if (!p) { err.textContent = 'Invalid product — please refresh'; return; }
+  var price    = p.price_full_day || p.price_half_day || 0;
+  var ln       = document.getElementById('w-ln').value.trim();
+  var em       = document.getElementById('w-em').value.trim();
+  var ar       = document.getElementById('w-ar').value.trim();
+  var ev       = document.getElementById('w-ev').value;
+  var bal      = document.getElementById('w-bal').value.trim();
+  var notes    = document.getElementById('w-notes').value.trim();
+  var time     = document.getElementById('w-time').value;
 
   var btn = document.getElementById('sub-btn');
   btn.disabled = true;
-  btn.textContent = 'Sending…';
+  btn.textContent = 'Checking & saving…';
 
+  // Final availability check before writing
+  try {
+    var siblings = getSiblings(p.name);
+    var placeholders = siblings.map(function(){ return '?'; }).join(',');
+    var clash = await tursoQuery(
+      "SELECT id FROM bb_bookings WHERE item IN (" + placeholders + ") AND date=? AND status IN ('pending','confirmed') LIMIT 1",
+      siblings.concat([date])
+    );
+    if (clash.rows.length > 0) {
+      err.textContent = 'Sorry, that inflatable is no longer available on that date. Please choose another date.';
+      btn.disabled = false;
+      btn.textContent = '✅ Request My Booking';
+      return;
+    }
+  } catch(e) { console.error('Final clash check failed:', e); }
+
+  // Write pending booking to Turso
+  var fullName = (fn + (ln ? ' ' + ln : '')).trim();
+  var noteParts = [];
+  if (ev)    noteParts.push(ev);
+  if (bal)   noteParts.push('Balloons: ' + bal);
+  if (notes) noteParts.push(notes);
+  if (ar)    noteParts.push('Area: ' + ar);
+  var notesStr = noteParts.join(' | ');
+
+  try {
+    await tursoQuery(
+      'INSERT INTO bb_bookings (booked_by, item, date, edate, status, notes, source, customer_name, customer_phone, time_slot, amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [fullName, p.name, date, date, 'pending', notesStr, 'public', fullName, ph, time, price]
+    );
+  } catch(e) { console.error('Failed to save booking to Turso:', e); }
+
+  // Build WhatsApp message
   var d = new Date(date + 'T00:00:00');
   var dStr = d.toLocaleDateString('en-ZA', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
   var dep = Math.round(price * 0.5);
 
   var msg = 'Hi! I would like to book the following:\n\n' +
-    '🫧 *' + prodName + '*\n' +
+    '🫧 *' + p.name + '*\n' +
     '📅 ' + dStr + '\n' +
     '🕐 ' + time + '\n' +
     '💳 Price: R' + price.toLocaleString('en-ZA') + ' (50% deposit: R' + dep.toLocaleString('en-ZA') + ')\n\n' +
     '*My Details:*\n' +
-    '👤 ' + fn + (ln ? ' ' + ln : '') + '\n' +
+    '👤 ' + fullName + '\n' +
     '📞 ' + ph + '\n' +
-    (em    ? '📧 ' + em    + '\n' : '') +
-    (ar    ? '📍 ' + ar    + '\n' : '') +
+    (em  ? '📧 ' + em  + '\n' : '') +
+    (ar  ? '📍 ' + ar  + '\n' : '') +
     '🎉 Event: ' + ev + '\n' +
     (bal   ? '🎈 Balloon colours: ' + bal   + '\n' : '') +
     (notes ? '📝 Notes: '          + notes + '\n' : '') +
@@ -266,13 +432,6 @@ function submitBooking() {
 
   var waNumber = '27648193770';
   window._lastWaUrl = 'https://wa.me/' + waNumber + '?text=' + encodeURIComponent(msg);
-
-  // Record booking for clash detection
-  bookingCount++;
-  bookings.unshift({
-    id: bookingCount, prodId: parts[0], rawDate: date,
-    prod: prodName, time: time, status: 'pending'
-  });
 
   document.getElementById('booking-form').style.display = 'none';
   document.getElementById('success-box').style.display = 'block';
@@ -291,6 +450,7 @@ function resetForm() {
   document.getElementById('sub-btn').textContent = '✅ Request My Booking';
   document.getElementById('w-prod').selectedIndex = 0;
   document.getElementById('w-price').textContent = '';
+  document.getElementById('w-avail').textContent = '';
   document.getElementById('w-sum').style.display = 'none';
   document.getElementById('w-err').textContent = '';
   ['w-fn','w-ln','w-ph','w-em','w-ar','w-bal','w-notes'].forEach(function(id){
@@ -298,6 +458,9 @@ function resetForm() {
   });
   document.getElementById('w-date').value = '';
 }
+
+// Load products on page load
+loadProducts();
 </script>
 </body>
 </html>

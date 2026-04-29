@@ -283,6 +283,35 @@ async function tursoQuery(sql,args=[]){
   return{rows,lastInsertRowid:result.last_insert_rowid?Number(result.last_insert_rowid):null,affectedRowCount:result.affected_row_count||0};
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PHYSICAL UNIT MAP — same as CRM & public page
+// Allows detecting cross-source bookings of the same inflatable
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const ITEM_TO_UNIT = {
+  'Small Bubble Tent':                           'BUBBLE_TENT_SM',
+  'Large Bubble Tent':                           'BUBBLE_TENT_LG',
+  'Small Bubble Bouncy House':                   'BUBBLE_3M',
+  'Large Bubble Bouncy House':                   'BUBBLE_4M',
+  'Bubble House 3m – Balloons & Operator':  'BUBBLE_3M',
+  'Bubble House 4m – Balloons & Operator':  'BUBBLE_4M',
+  'Bubble Tent – Gender Reveal':             'BUBBLE_TENT_LG',
+  'White Jumping Castle':                        'CASTLE_3M',
+  'White Castle with Obstacle':                  'CASTLE_OBSTACLE',
+  'White Castle 3m with Balloon Garland':        'CASTLE_3M',
+  'White Castle with Obstacle & Balloons':       'CASTLE_OBSTACLE',
+  'Cool Kids 4-in-1':                           'COOL_KIDS',
+  'Adventure Island':                           'ADVENTURE_ISLAND',
+  'Wave Slide':                                 'WAVE_SLIDE',
+  'Small Water Slide':                          'SMALL_SLIDE',
+  'White Soft Play Set':                        'SOFT_PLAY',
+};
+
+function getUnitSiblings(name) {
+  const unit = ITEM_TO_UNIT[name];
+  if (!unit) return [name];
+  return Object.keys(ITEM_TO_UNIT).filter(n => ITEM_TO_UNIT[n] === unit);
+}
+
 // ── PINS ──────────────────────────────────────────────────────────────────────
 const PINS = { Carmen:"1234", Thomas:"1234", Sidney:"1234" };
 
@@ -555,8 +584,9 @@ function renderStock(){
   products.forEach(p=>{
     const cat=p.category||"Other";
     if(!cats[cat]) cats[cat]=[];
-    const activeBooking=bookings.find(b=>b.item===p.name&&b.status!=="cancelled"&&b.date&&b.date<=td&&(b.edate||b.date)>=td);
-    const upcomingBooking=bookings.find(b=>b.item===p.name&&b.status!=="cancelled"&&b.date&&b.date>td);
+    const siblings=getUnitSiblings(p.name);
+    const activeBooking=bookings.find(b=>siblings.includes(b.item)&&b.status!=="cancelled"&&b.date&&b.date<=td&&(b.edate||b.date)>=td);
+    const upcomingBooking=bookings.find(b=>siblings.includes(b.item)&&b.status!=="cancelled"&&b.date&&b.date>td);
     cats[cat].push({...p, activeBooking, upcomingBooking});
   });
   let html="";

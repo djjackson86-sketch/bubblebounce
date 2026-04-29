@@ -1267,7 +1267,7 @@ function gotoPage(page){
 function renderPage(p){
   if(p==='dashboard')renderDash();
   if(p==='new-booking'){initBookingPage();setTimeout(function(){renderCalendar();},50);}
-  if(p==='bookings')renderBookings();
+  if(p==='bookings'){loadTursoBookings().then(renderBookings);}
   if(p==='products'){loadProducts();}
   if(p==='leads')renderLeads();
   if(p==='pipeline')renderPipeline();
@@ -1532,8 +1532,8 @@ function confirmBooking(){
     createdAt:new Date().toISOString()
   };
   DB.bookings.push(booking);save();
-  // Auto-sync to stocktake system
-  syncToStocktake(booking, 'pending');
+  // Sync to shared bb_bookings table (all sources)
+  syncBookingToTurso(booking, 'pending').then(function(tid){ if(tid){booking.tursoId=tid;save();} });
   // Build WhatsApp message to Sidney
   const dep=Math.round(selectedProduct.price*((DB.cfg.deposit||50)/100));
   const waLines=[
@@ -1585,9 +1585,16 @@ function renderBookings(){
   if(bookF==='completed')list=list.filter(b=>b.status==='completed');
   if(bookF==='cancelled')list=list.filter(b=>b.status==='cancelled');
   list.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  // External bookings from Turso (staff / public sources)
+  var extList=(tursoBookings||[]).filter(function(b){return b.source!=='crm';});
+  if(bookF==='upcoming')extList=extList.filter(b=>b.date>=now&&b.status!=='cancelled');
+  if(bookF==='confirmed')extList=extList.filter(b=>b.status==='confirmed');
+  if(bookF==='completed')extList=extList.filter(b=>b.status==='completed');
+  if(bookF==='cancelled')extList=extList.filter(b=>b.status==='cancelled');
+  extList.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const tbody=document.getElementById('bookings-tbody');
-  if(!list.length){tbody.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-ico">📅</div><div class="empty-ttl">No bookings yet</div><div class="empty-desc">Create your first booking using the New Booking page</div></div></td></tr>`;return}
-  tbody.innerHTML=list.map(b=>{
+  if(!list.length&&!extList.length){tbody.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-ico">📅</div><div class="empty-ttl">No bookings yet</div><div class="empty-desc">Create your first booking using the New Booking page</div></div></td></tr>`;return}
+  const crmRows=list.map(b=>{
     const c=gc(b.contactId);const p=gp(b.productId);
     return`<tr>
       <td class="tdm">${b.number}</td>
@@ -1605,6 +1612,24 @@ function renderBookings(){
       </div></td>
     </tr>`;
   }).join('');
+  const extRows=extList.map(function(b){
+    var srcIcon=b.source==='public'?'🌐':b.source==='staff'?'👷':'📋';
+    var srcLabel=b.source==='public'?'Public':b.source==='staff'?'Staff':'Other';
+    return`<tr style="background:var(--bb-blue-soft)">
+      <td class="tdm"><span style="font-size:9.5px;color:var(--text3);display:block">${srcIcon} ${srcLabel}</span>#${b.id}</td>
+      <td><div class="tdn">${b.customer_name||b.booked_by||'—'}</div><div class="tds">${b.customer_phone||''}</div></td>
+      <td style="font-size:12.5px">${b.item||'—'}</td>
+      <td>${fmtD(b.date)}</td>
+      <td style="font-size:12px;color:var(--text2)">${b.time_slot||'—'}</td>
+      <td class="tdm">${b.amount?fmt(b.amount):'—'}</td>
+      <td>${bookStatusBadge(b.status)}</td>
+      <td><div class="ia">
+        ${b.status==='pending'?`<button class="ab success" onclick="confirmTursoBooking(${b.id})">✓ Confirm</button>`:''}
+        <button class="ab danger" onclick="cancelTursoBooking(${b.id})">✕</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+  tbody.innerHTML=crmRows+extRows;
 }
 
 function openBookingPanel(id){
@@ -1662,12 +1687,14 @@ function saveBooking(){
   b.eventType=document.getElementById('bk-event').value;
   b.balloons=document.getElementById('bk-balloons').value.trim();
   b.notes=document.getElementById('bk-notes').value.trim();
-  save();closeModal('m-booking');renderBookings();renderDash();updateBadges();toast('Booking updated ✓');
+  save();closeModal('m-booking');renderBookings();renderDash();updateBadges();
+  syncBookingToTurso(b, b.status);
+  toast('Booking updated ✓');
 }
 
-function markBookingComplete(id){const b=DB.bookings.find(x=>x.id===id);if(b){b.status='completed';save();closePanel();renderBookings();renderDash();updateBadges();syncToStocktake(b,'confirmed');toast('Marked complete 🎉 Stocktake updated','success')}}
-function confirmBookingStatus(id){const b=DB.bookings.find(x=>x.id===id);if(b){b.status='confirmed';save();closePanel();renderBookings();renderDash();updateBadges();syncToStocktake(b,'confirmed');toast('Booking confirmed ✓ Stocktake updated','success')}}
-function deleteBooking(id){if(!confirm('Delete this booking?'))return;DB.bookings=DB.bookings.filter(b=>b.id!==id);save();renderBookings();renderDash();updateBadges();toast('Booking deleted')}
+function markBookingComplete(id){const b=DB.bookings.find(x=>x.id===id);if(b){b.status='completed';save();closePanel();renderBookings();renderDash();updateBadges();syncBookingToTurso(b,'completed');toast('Marked complete','success')}}
+function confirmBookingStatus(id){const b=DB.bookings.find(x=>x.id===id);if(b){b.status='confirmed';save();closePanel();renderBookings();renderDash();updateBadges();syncBookingToTurso(b,'confirmed');toast('Booking confirmed','success')}}
+function deleteBooking(id){if(!confirm('Delete this booking?'))return;var bd=DB.bookings.find(b=>b.id===id);DB.bookings=DB.bookings.filter(b=>b.id!==id);save();if(bd&&bd.tursoId)tursoExec('UPDATE bb_bookings SET status=? WHERE id=?',['cancelled',bd.tursoId]);renderBookings();renderDash();updateBadges();toast('Booking deleted')}
 
 // ══════════════════════════════════════════
 // PRODUCTS
@@ -2339,6 +2366,8 @@ document.addEventListener('DOMContentLoaded', function() {
   if(DB.cfg.waNumber){ try{ var e=document.getElementById('s-wa'); if(e)e.value=DB.cfg.waNumber; }catch(ex){} }
   // Load shared product catalogue from Turso
   loadProducts().catch(function(e){ console.error('Initial loadProducts failed:', e); });
+  // Load all bookings from all sources into tursoBookings cache
+  loadTursoBookings().catch(function(e){ console.error('Initial loadTursoBookings failed:', e); });
 });
 
 
@@ -2695,7 +2724,7 @@ window.addEventListener('message', function(e) {
   };
   DB.bookings.push(bk);
   save(); updateBadges(); closeModal('m-widget');
-  syncToStocktake(bk,'pending');
+  syncBookingToTurso(bk,'pending').then(function(tid){ if(tid){bk.tursoId=tid;save();} });
 
   // Build WhatsApp notification message
   var dep = Math.round((p?p.price:0) * ((DB.cfg.deposit||50)/100));
@@ -2916,30 +2945,11 @@ function loadFromTurso() {
 
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// STOCKTAKE AUTO-SYNC
-// Writes to the stocktake Supabase (bb_bookings table)
-// whenever a booking is created or status changes
+// BOOKING SYNC — shared bb_bookings Turso table
+// CRM, Staff app & Public booking page all write here.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-// Map BB CRM product IDs -> stocktake item names
-var STOCKTAKE_ITEM_MAP = {
-  'p1':  'White Castle with Obstacle',
-  'p2':  'White Soft Play Set',
-  'p3':  'Large Bubble Bouncy House',
-  'p4':  'Small Bubble Bouncy House',
-  'p5':  'Small Bubble Bouncy House',
-  'p6':  'Adventure Island',
-  'p7':  'Wave Slide',
-  'p8':  'Cool Kids 4-in-1',
-  'p9':  'White Jumping Castle',
-  'p10': 'White Jumping Castle',
-  'p11': 'White Castle with Obstacle',
-  'p12': 'Large Bubble Bouncy House',
-  'p13': 'Large Bubble Tent',
-  'p14': 'Small Bubble Tent',
-};
-
-// Accessories that go with each item (mirrors stocktake system)
+// Accessories that go with each item
 var STOCKTAKE_ACCESSORIES = {
   'Small Bubble Tent':         ['1x Motor','1x Extension Cord','1x Lay Down Sheet'],
   'Large Bubble Tent':         ['1x Motor','1x Extension Cord','1x Lay Down Sheet'],
@@ -2953,102 +2963,84 @@ var STOCKTAKE_ACCESSORIES = {
   'White Soft Play Set':       ['1x Lay Down Sheet'],
 };
 
-// Turso HTTP API for stocktake sync (bb_bookings table)
-var TURSO_URL = 'https://bubblebounce-djjackson86-sketch.aws-eu-west-1.turso.io';
-var TURSO_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJleHAiOjE4MDg5MzExMTIsImdpZCI6ImZmNzliYWYzLWEwYzYtNDVjYy1iNjdkLTU1MjllNGQ0YTA2YiIsImlhdCI6MTc3NzM5NTExMiwicmlkIjoiYTRlZmFmNTAtYzQ0ZC00YzRjLWI3OTgtMjQ0ZjYyYWI5MmVjIn0.waVq2Pp9F1oBoR1xM0j6DSExClezVMmBZRjQ9PW96tFASRWNgFKpYGUjk7VmhaK-ltPG0XsFTSyX1CRiqmd-Bw';
+// In-memory cache of ALL bookings from Turso (all sources)
+var tursoBookings = [];
 
-async function tursoQuery(sql, args) {
-  var res = await fetch(TURSO_URL + '/v2/pipeline', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + TURSO_TOKEN, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ requests: [{ type: 'execute', stmt: { sql: sql, args: args || [] } }, { type: 'close' }] })
-  });
-  if (!res.ok) throw new Error('Turso HTTP ' + res.status);
-  var data = await res.json();
-  var r = data.results[0];
-  if (r.type === 'error') throw new Error('Turso: ' + r.error.message);
-  return r.response.result;
+// Load all active bookings from bb_bookings into tursoBookings cache
+async function loadTursoBookings() {
+  try {
+    var r = await tursoQuery(
+      "SELECT id, booked_by, item, date, edate, status, notes, source, customer_name, customer_phone, time_slot, amount FROM bb_bookings WHERE status != 'cancelled' ORDER BY date DESC"
+    );
+    tursoBookings = r.rows || [];
+  } catch(e) { console.error('loadTursoBookings:', e); }
 }
 
-// Push a BB booking into the stocktake system
-async function syncToStocktake(booking, status) {
-  var itemName = STOCKTAKE_ITEM_MAP[booking.productId];
-  if (!itemName) { console.warn('No stocktake mapping for product:', booking.productId); return; }
-
+// Sync a CRM booking to bb_bookings (INSERT or UPDATE by tursoId).
+// Returns the Turso row id (integer) or null on error.
+async function syncBookingToTurso(booking, status) {
+  var p = gp(booking.productId);
+  var itemName = p ? p.name : (booking.productId || 'Unknown');
   var c = gc(booking.contactId);
-  var contactName = c ? (c.fname + ' ' + (c.lname||'')).trim() : 'Website Booking';
-
+  var customerName  = c ? (c.fname + ' ' + (c.lname||'')).trim() : '';
+  var customerPhone = c ? (c.phone || '') : '';
   var bkStatus = status || booking.status || 'pending';
-  if (bkStatus === 'confirmed') bkStatus = 'confirmed';
-  else if (bkStatus === 'cancelled') bkStatus = 'cancelled';
-  else bkStatus = 'pending';
-
   var notes = [];
   if (booking.eventType) notes.push(booking.eventType);
   if (booking.balloons)  notes.push('Balloons: ' + booking.balloons);
   if (booking.notes)     notes.push(booking.notes);
-  if (booking.time)      notes.push('Time: ' + booking.time);
   if (booking.number)    notes.push('Ref: ' + booking.number);
-
   var notesStr = notes.join(' | ');
   var accessories = JSON.stringify(STOCKTAKE_ACCESSORIES[itemName] || []);
-
   try {
-    var existingId = null;
-    if (booking.number) {
-      var chk = await tursoQuery(
-        'SELECT id FROM bb_bookings WHERE notes LIKE ? LIMIT 1',
-        [{ type: 'text', value: '%' + booking.number + '%' }]
+    if (booking.tursoId) {
+      await tursoExec(
+        'UPDATE bb_bookings SET booked_by=?, item=?, accessories=?, date=?, edate=?, status=?, notes=?, source=?, customer_name=?, customer_phone=?, time_slot=?, amount=? WHERE id=?',
+        [customerName||'CRM', itemName, accessories, booking.date, booking.date, bkStatus, notesStr, 'crm', customerName, customerPhone, booking.time||'', booking.amount||0, booking.tursoId]
       );
-      if (chk.rows && chk.rows.length > 0) existingId = chk.rows[0][0].value;
-    }
-
-    if (existingId) {
-      await tursoQuery(
-        'UPDATE bb_bookings SET booked_by=?, item=?, accessories=?, date=?, edate=?, status=?, notes=? WHERE id=?',
-        [
-          { type: 'text', value: contactName },
-          { type: 'text', value: itemName },
-          { type: 'text', value: accessories },
-          { type: 'text', value: booking.date },
-          { type: 'text', value: booking.date },
-          { type: 'text', value: bkStatus },
-          { type: 'text', value: notesStr },
-          { type: 'integer', value: String(existingId) }
-        ]
-      );
-      console.log('Stocktake updated for', booking.number);
+      return booking.tursoId;
     } else {
-      await tursoQuery(
-        'INSERT INTO bb_bookings (booked_by, item, accessories, date, edate, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [
-          { type: 'text', value: contactName },
-          { type: 'text', value: itemName },
-          { type: 'text', value: accessories },
-          { type: 'text', value: booking.date },
-          { type: 'text', value: booking.date },
-          { type: 'text', value: bkStatus },
-          { type: 'text', value: notesStr }
-        ]
+      var r2 = await tursoExec(
+        'INSERT INTO bb_bookings (booked_by, item, accessories, date, edate, status, notes, source, customer_name, customer_phone, time_slot, amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [customerName||'CRM', itemName, accessories, booking.date, booking.date, bkStatus, notesStr, 'crm', customerName, customerPhone, booking.time||'', booking.amount||0]
       );
-      console.log('Stocktake entry created for', booking.number, '-', itemName);
+      return r2.lastInsertRowid || null;
     }
-  } catch(e) {
-    console.error('Stocktake sync error:', e);
-  }
+  } catch(e) { console.error('syncBookingToTurso error:', e); return null; }
 }
 
-// Sync all confirmed/pending bookings (bulk resync)
+// Confirm a Turso booking from another source (staff / public)
+async function confirmTursoBooking(tursoId) {
+  try {
+    await tursoExec('UPDATE bb_bookings SET status=? WHERE id=?', ['confirmed', tursoId]);
+    await loadTursoBookings(); renderBookings();
+    toast('Booking confirmed ✓', 'success');
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+// Cancel a Turso booking from another source
+async function cancelTursoBooking(tursoId) {
+  if (!confirm('Cancel this booking?')) return;
+  try {
+    await tursoExec('UPDATE bb_bookings SET status=? WHERE id=?', ['cancelled', tursoId]);
+    await loadTursoBookings(); renderBookings();
+    toast('Booking cancelled');
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+// Bulk re-sync all CRM bookings to Turso
 async function resyncAllToStocktake() {
   var count = 0;
   for (var i = 0; i < DB.bookings.length; i++) {
     var b = DB.bookings[i];
     if (b.status !== 'cancelled') {
-      await syncToStocktake(b, b.status);
+      var tid = await syncBookingToTurso(b, b.status);
+      if (tid && !b.tursoId) { b.tursoId = tid; }
       count++;
     }
   }
-  toast('Synced ' + count + ' bookings to stocktake system \u2713', 'success');
+  save();
+  toast('Synced ' + count + ' bookings to cloud ✓', 'success');
 }
 
 
@@ -3057,59 +3049,82 @@ async function resyncAllToStocktake() {
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // PHYSICAL UNIT INVENTORY BLOCKING
-// One physical inflatable can only be booked once per slot.
-// If any variant is booked, ALL variants of that unit are blocked.
+// Maps item names to physical units so variants of the same
+// inflatable cannot be double-booked. Checks ALL sources.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-var PHYSICAL_UNIT = {
-  'p1' : 'CASTLE_OBSTACLE',
-  'p11': 'CASTLE_OBSTACLE',
-  'p9' : 'CASTLE_3M',
-  'p10': 'CASTLE_3M',
-  'p3' : 'BUBBLE_4M',
-  'p12': 'BUBBLE_4M',
-  'p4' : 'BUBBLE_3M',
-  'p5' : 'BUBBLE_3M',
-  'p2' : 'SOFT_PLAY',
-  'p6' : 'ADVENTURE_ISLAND',
-  'p7' : 'WAVE_SLIDE',
-  'p8' : 'COOL_KIDS',
-  'p13': 'BUBBLE_TENT_LG',
-  'p14': 'BUBBLE_TENT_SM',
+// item name -> physical unit code
+var ITEM_TO_UNIT = {
+  'Small Bubble Tent':                           'BUBBLE_TENT_SM',
+  'Large Bubble Tent':                           'BUBBLE_TENT_LG',
+  'Small Bubble Bouncy House':                   'BUBBLE_3M',
+  'Large Bubble Bouncy House':                   'BUBBLE_4M',
+  'Bubble House 3m – Balloons & Operator': 'BUBBLE_3M',
+  'Bubble House 4m – Balloons & Operator': 'BUBBLE_4M',
+  'Bubble Tent – Gender Reveal':            'BUBBLE_TENT_LG',
+  'White Jumping Castle':                        'CASTLE_3M',
+  'White Castle with Obstacle':                  'CASTLE_OBSTACLE',
+  'White Castle 3m with Balloon Garland':        'CASTLE_3M',
+  'White Castle with Obstacle & Balloons':       'CASTLE_OBSTACLE',
+  'Cool Kids 4-in-1':                           'COOL_KIDS',
+  'Adventure Island':                           'ADVENTURE_ISLAND',
+  'Wave Slide':                                 'WAVE_SLIDE',
+  'Small Water Slide':                          'SMALL_SLIDE',
+  'White Soft Play Set':                        'SOFT_PLAY',
 };
 
-// Get all product IDs that share the same physical unit as a given product
-function getUnitSiblings(productId) {
-  var unit = PHYSICAL_UNIT[productId];
-  if (!unit) return [productId];
-  return Object.keys(PHYSICAL_UNIT).filter(function(pid) {
-    return PHYSICAL_UNIT[pid] === unit;
-  });
+// Get all item names that share the same physical unit
+function getItemSiblingNames(itemName) {
+  var unit = ITEM_TO_UNIT[itemName];
+  if (!unit) return [itemName];
+  return Object.keys(ITEM_TO_UNIT).filter(function(n) { return ITEM_TO_UNIT[n] === unit; });
 }
 
-// Check if a physical unit is available on a given date+time
-// Returns null if available, or the conflicting booking if taken
+// Check if a physical unit is available on a given date+time.
+// Checks BOTH CRM local bookings AND Turso bookings from all sources.
+// Returns null if available, or the conflicting booking if taken.
 function getUnitConflict(productId, date, time, excludeBookingId) {
-  var siblings = getUnitSiblings(productId);
-  return DB.bookings.find(function(b) {
-    return siblings.indexOf(b.productId) !== -1 &&
-           b.date === date &&
-           b.time === time &&
-           b.status !== 'cancelled' &&
-           b.id !== excludeBookingId;
+  var p = gp(productId);
+  var itemName = p ? p.name : productId;
+  var unit = ITEM_TO_UNIT[itemName] || itemName;
+  var siblingNames = getItemSiblingNames(itemName);
+  // Check local CRM bookings
+  var local = DB.bookings.find(function(b) {
+    var bp = gp(b.productId); var bName = bp ? bp.name : b.productId;
+    return siblingNames.indexOf(bName) !== -1 && b.date === date &&
+           b.time === time && b.status !== 'cancelled' && b.id !== excludeBookingId;
   }) || null;
+  if (local) return local;
+  // Check external Turso bookings (staff / public sources)
+  return (tursoBookings.find(function(b) {
+    if (b.source === 'crm') return false;
+    var bUnit = ITEM_TO_UNIT[b.item] || b.item;
+    return bUnit === unit && b.date === date && b.status !== 'cancelled' &&
+           (!b.time_slot || b.time_slot === time);
+  }) || null);
 }
 
-// Get all times on a date where a physical unit is already booked
+// Get all booked times on a date for a given product's physical unit.
+// Checks both CRM local bookings and all Turso sources.
 function getUnitBookedTimes(productId, date) {
-  var siblings = getUnitSiblings(productId);
-  return DB.bookings
+  var p = gp(productId);
+  var itemName = p ? p.name : productId;
+  var unit = ITEM_TO_UNIT[itemName] || itemName;
+  var siblingNames = getItemSiblingNames(itemName);
+  var times = DB.bookings
     .filter(function(b) {
-      return siblings.indexOf(b.productId) !== -1 &&
-             b.date === date &&
-             b.status !== 'cancelled';
+      var bp = gp(b.productId); var bName = bp ? bp.name : b.productId;
+      return siblingNames.indexOf(bName) !== -1 && b.date === date && b.status !== 'cancelled';
     })
     .map(function(b) { return b.time; });
+  tursoBookings.forEach(function(b) {
+    if (b.source === 'crm') return;
+    var bUnit = ITEM_TO_UNIT[b.item] || b.item;
+    if (bUnit === unit && b.date === date && b.status !== 'cancelled' && b.time_slot) {
+      times.push(b.time_slot);
+    }
+  });
+  return times;
 }
 
 
